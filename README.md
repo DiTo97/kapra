@@ -1,6 +1,6 @@
 # KAPRA
 
-https://ieeexplore.ieee.org/abstract/document/6095556
+Implementation of the [KAPRA](https://ieeexplore.ieee.org/abstract/document/6095556) algorithm for (k, P)-anonymity
 
 **Authors:** F. Minutoli, M. Ghirardelli, S. Bagnato, and G. Losapio.
 
