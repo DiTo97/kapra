@@ -25,3 +25,16 @@ Implementation of the [KAPRA](https://ieeexplore.ieee.org/abstract/document/6095
 
 - Discuss test results for utility and performance.
 - Discuss test results for varying values of k and P.
+
+## Dataset
+Weekly sales transactions [dataset](https://archive.ics.uci.edu/ml/datasets/sales_transactions_dataset_weekly) from UCI, in the *data* folder.
+
+## Usage 
+```
+[*] usage: python kp-anonymity.py k_value p_value paa_value data\sales_transactions_dataset_weekly.csv
+```
+
+### Parameters explanation
+- *k_value*, the K-anonymity constraint value;
+- *p_value*, the P-anonymity constraint value on pattern sub-groups.
+- *paa_value*, the piece-wise aggregate approximation (PAA) value to reduce the dimensionality of patterns.
