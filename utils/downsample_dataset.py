@@ -26,7 +26,7 @@ for record in records_to_keep:
 
     df_downsampled = df.head(record)
 
-    filename_downsampled = filename.rsplit('.', 1)[0] + '_' + str(record) + '.csv'
+    filename_downsampled = filename.replace('.csv', '_' + str(record) + '.csv')
     path_downsampled = path.parent / DOWNSAMPLED_DIR / filename_downsampled 
 
     df_downsampled.to_csv(path_downsampled, index=False)

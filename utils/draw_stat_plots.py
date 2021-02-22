@@ -112,6 +112,6 @@ fig.tight_layout()
 
 # 3. Save stat figure to appropriate path
 path_figure = Path(__file__).absolute().parent.parent / FIGURES_DIR
-filename = 'Stat-' + dataset.rsplit('.', 1)[0] + '-' + metric
+filename = 'Stat-' + dataset.replace('.csv', '-' + metric + '.png')
 
-plt.savefig((path_figure / filename).with_suffix('.png'))
+plt.savefig(path_figure / filename)
