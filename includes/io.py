@@ -24,7 +24,7 @@ def get_min_max_QI_values_from_table(df, QI_cols):
         Time series data DF
 
     :param QI_cols: list of str
-        QI attributes only column names
+        QI attributes-only column names
 
     Returns
     -------
@@ -82,7 +82,7 @@ def load_dataset(path: str):
   
     QI_min_vals, QI_max_vals = get_min_max_QI_values_from_table(df, cols)
 
-    logger.info('Dataset loaded')
+    logger.info('Loaded dataset')
 
     return QI_min_vals, QI_max_vals, QI_dict, A_s_dict
 

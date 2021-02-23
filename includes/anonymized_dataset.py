@@ -26,6 +26,7 @@ class AnonymizedDataset:
                         
             max_value = np.amax(np.array(list(group.values())), 0)
             min_value = np.amin(np.array(list(group.values())), 0)
+
             for key in group.keys():
                 # key = row product
                 self.final_data_anonymized[key] = list()
@@ -34,6 +35,7 @@ class AnonymizedDataset:
                     value_row.append("[{}-{}]".format(min_value[column_index], max_value[column_index]))
                 
                 value_row.append(self.pattern_anonymized_data[key]) 
+                # TODO: Insert senstive attribute
                 value_row.append("Group: {}".format(index))
 
                 self.final_data_anonymized[key] = value_row
@@ -45,6 +47,7 @@ class AnonymizedDataset:
             for key in group.keys():
                 value_row = [" - "]*len(group[key])
                 value_row.append(" - ") # pattern rapresentation
+                # TODO: Insert senstive attribute
                 value_row.append(" - ") # group
                 self.final_data_anonymized[key] = value_row
 

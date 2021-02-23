@@ -1,225 +1,201 @@
-
 import os
-import numpy as np
-import pandas as pd
-import sys
 import random
-from loguru import logger
-from pathlib import Path
+import sys
 
-# caputo : 4
-max_level = 5
+import numpy as np
+
+from loguru import logger
+
+ROUNDS = 6 # # of NCP maximization rounds. By up to 6 rounds,
+           # we can achieve more than 98:75% of the maximal penalty
 
 # Custom imports #
-from dataset_anonymized import DatasetAnonymized
-from node import Node
+from .metric import instant_value_loss
+from .metric import normalized_certainty_penalty
 
-def compute_normalized_certainty_penalty_on_ai(table=None, maximum_value=None, minimum_value=None):
+def find_tuple_with_max_ncp(base, T, key, T_max_vals, T_min_vals):
     """
-    Compute NCP(T)
-    :param table:
-    :return:
-    """
-    z_1 = list()
-    y_1 = list()
-    a = list()
-    n = len(table[0])
-
-    for index_attribute in range(0, n): 
-        temp_z1 = 0
-        temp_y1 = float('inf') 
-        for row in table: 
-            if row[index_attribute] > temp_z1:
-                temp_z1 = row[index_attribute]
-            if row[index_attribute] < temp_y1:
-                temp_y1 = row[index_attribute]
-        z_1.append(temp_z1) 
-        y_1.append(temp_y1) 
-        a.append(abs(maximum_value[index_attribute] - minimum_value[index_attribute]))
-    ncp_t = 0
-    for index in range(0, n):
-        if a[index] == 0:
-            ncp_t += 0
-        else:
-            ncp_t += (z_1[index] - y_1[index]) / a[index]
-    ncp_T = len(table)*ncp_t 
-    return ncp_T
-
-def compute_instant_value_loss(table):
-    """
-    Compute VL(T)
-    :param table:
-    :return: [description]
-    """ 
-    r_plus = list()
-    r_minus = list()
-    n = len(table[0])
-
-    for index_attribute in range(0, n): 
-        temp_r_plus = 0
-        temp_r_minus = float('inf')
-        for row in table:
-            if row[index_attribute] > temp_r_plus:
-                temp_r_plus = row[index_attribute]
-            if row[index_attribute] < temp_r_minus:
-                temp_r_minus = row[index_attribute]
-        r_plus.append(temp_r_plus) 
-        r_minus.append(temp_r_minus)
+    Scan through the whole table T, and find the i-th tuple that maximizes NCP(base, i).
     
-    vl_t = 0
-    for index in range(0, n):
-        vl_t += pow((r_plus[index] - r_minus[index]), 2) / n
-    vl_t = np.sqrt(vl_t)
-    vl_T = len(table)*vl_t
-    return vl_T
+    Parameters
+    ----------
+    :param base: list of int
+        Tuple to compare T's tuples against
 
-def find_tuple_with_maximum_vl(fixed_tuple, time_series, key_fixed_tuple):
-    """
-    By scanning all tuples once, we can find tuple t1 that maximizes VL(fixed_tuple, t1)
-    :param fixed_tuple:
-    :param time_series:
-    :param key_fixed_tuple:
-    :return:
-    """
-    max_value = 0
-    tuple_with_max_vl = None
-    for key, value in time_series.items():
-        if key != key_fixed_tuple:
-            vl = compute_instant_value_loss([fixed_tuple, time_series[key]])
-            if vl >= max_value:
-                tuple_with_max_vl = key
-                max_value = vl
-    #logger.info("Max vl found: {} with tuple {} ".format(max_value, tuple_with_max_vl))           
-    return tuple_with_max_vl
-    
+    :param key: int
+        Unique Id of `base`
 
+    Returns
+    -------
+    :return best: int
+        Unique Id of the found tuple
+    """
 
-def find_tuple_with_maximum_ncp(fixed_tuple, time_series, key_fixed_tuple, maximum_value, minimum_value):
-    """
-    By scanning all tuples once, we can find tuple t1 that maximizes NCP(fixed_tuple, t1)
-    :param fixed_tuple:
-    :param time_series:
-    :param key_fixed_tuple:
-    :return:
-    """
-    max_value = 0
-    tuple_with_max_ncp = None
-    for key, value in time_series.items():
-        if key != key_fixed_tuple:
-            ncp = compute_normalized_certainty_penalty_on_ai([fixed_tuple, time_series[key]], maximum_value, minimum_value)
-            if ncp >= max_value:
-                tuple_with_max_ncp = key
-                max_value = ncp
-    #logger.info("Max ncp found: {} with tuple {} ".format(max_value, tuple_with_max_ncp))           
-    return tuple_with_max_ncp
+    max_ncp = 0
+    best = None
 
+    for k in T.keys():
+        if k != key:
+            ncp = normalized_certainty_penalty([base, T[k]],
+                    T_max_vals, T_min_vals)
 
-def top_down_greedy_clustering(algorithm=None, time_series=None, partition_size=None, maximum_value=None,
-                                  minimum_value=None, time_series_clustered=None, tree_structure=None, group_label="o"):
+            if ncp >= max_ncp: # Update the best tuple Id
+                max_ncp = ncp
+                best = k
+
+    return best
+
+def find_tuple_with_max_vl(base, T, key):
     """
-    k-anonymity based on work of Xu et al. 2006,
-    Utility-Based Anonymization for Privacy Preservation with Less Information Loss
-    :param time_series:
-    :param k_value:
-    :return:
+    Scan through the whole table T, and find the i-th tuple that maximizes VL(base, i).
+
+    Returns
+    -------
+    :return best: int
+        Unique Id of the found tuple
     """
-    if len(time_series) < 2*partition_size:
-        #logger.info("End Recursion")
-        time_series_clustered.append(time_series)
-        tree_structure.append(group_label)
+
+    max_vl = 0
+    best = None
+
+    for k in T.keys():
+        if k != key:
+            vl = instant_value_loss([base, T[k]])
+
+            if vl >= max_vl: # Update the best tuple Id
+                max_vl = vl
+                best = k
+
+    return best
+
+def top_down_greedy_clustering(algorithm, T, size, T_clustered,
+        T_structure, label='o', T_max_vals=None, T_min_vals=None):
+    """
+    Top down greedy search implementation, from Xu et al. 2006,
+    Utility-based Anonymization for Privacy Preservation with Less Information Loss, 4.2
+
+    It mimics the construction of a binary tree with a number of separate list/dict structures. At each clustering level the data is split
+    in two smaller groups, each minimizing the intra-NCP among its records. Each bipartite group is assigned a unique label,
+    which extends the label of its larger parent group, in order to track its path from root to tip.
+
+    Parameters
+    ----------
+    :param algorithm: str
+        (k, P)-anonymity implementation: naive or KAPRA
+
+    :param T: dict of list of int
+        Dict of time-series records on QI attributes
+
+    :param size: int
+        Cluster size
+
+    :param T_clustered: list of dict of list of int
+        List of `size`-large clustered groups from `T`
+
+    :param T_structure: list of str
+        List of unique alphabetic labels identifying clustered groups in `T_clustered`
+
+    :param label: str - 'o'
+        Alphabetic label mapping the current clustering level
+
+    :param T_max_vals: list of int - None
+        List of max values for each QI attribute
+
+    :param T_min_vals: list of int - None
+        List of min values for each QI attribute
+    """
+
+    if algorithm == 'naive' \
+            and (T_max_vals == None or T_min_vals == None):
+        logger.error('No QI attribute boundaries are available, but they are required by the naive'
+                + ' (k, P)-anonymity algorithm to compute the NPC metric')
+        exit(1)
+
+    # If there are less than 2*size records in T, there is no way
+    # to produce two valid cuts >= size. The recursion can then stop.
+    if len(T) < 2*size:
+        T_clustered.append(T)
+        T_structure.append(label)
         return
+
+    ids = list(T.keys())
+
+    # 1. Initialize groups via a NCP maximization-based heuristic
+    group_u = dict()
+    group_v = dict()
+
+    seed = ids[random.randint(0, len(ids) - 1)] # Draw a random row Id
+    group_u[seed] = T[seed]
+
+    old = seed # Last visited record
+
+    # 1.a Fill the two groups alternately for # of ROUNDS
+    # while maximiziming the respective NCP (naive) or IVL (KAPRA) metric
+    for round in ROUNDS:
+        if round % 2 == 0:
+            source = group_u
+            target = group_v
+        else:
+            source = group_v
+            target = group_u
+
+        if algorithm == 'naive':
+            r = find_tuple_with_max_ncp(source[old], T, old,
+                    T_max_vals, T_min_vals)
+        elif algorithm == 'kapra':
+            r = find_tuple_with_max_vl(source[old], T, old)
+
+        target[r] = T[r]
+        old = r
+
+        # Update data structures
+        del T[r]
+        ids.remove(r)
+
+    # 1.b Assign each record to the group with lower NCP
+    random.shuffle(ids) # Shuffle leftover Ids
+
+    for i in ids:
+        row = T[i]
+
+        # Copy values to check what would happen
+        # if row was added to either one separately
+        group_u_vals = list(group_u.values())
+        group_v_vals = list(group_v.values())
+
+        group_u_vals.append(row)
+        group_v_vals.append(row)
+
+        if algorithm == 'naive':
+            metric_u = normalized_certainty_penalty(group_u_vals,
+                    T_max_vals, T_min_vals)
+            metric_v = normalized_certainty_penalty(group_v_vals,
+                    T_max_vals, T_min_vals)
+        elif algorithm == 'kapra':
+            metric_u = instant_value_loss(group_u_vals)
+            metric_v = instant_value_loss(group_v_vals)
+
+        if metric_v < metric_u:
+            group_v[i] = row
+        else:
+            group_u[i] = row
+
+        del T[i]
+
+    # 2. Iterate recursively, or store groups if base case
+    if len(group_u) > size:
+        top_down_greedy_clustering(algorithm, group_u, size, T_clustered,
+                T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
     else:
-        #logger.info("Start Partition with size {}".format(len(time_series)))
-        keys = list(time_series.keys())
-        rounds = 3
+        T_clustered.append(group_u)
+        T_structure.append(label)
 
-        # pick random tuple
-        random_tuple = keys[random.randint(0, len(keys) - 1)] 
-        #logger.info("Get random tuple (u1) {}".format(random_tuple))
-        group_u = dict()
-        group_v = dict()
-        group_u[random_tuple] = time_series[random_tuple]
-        #del time_series[random_tuple]
-        last_row = random_tuple
-        for round in range(0, rounds*2 - 1): 
-            if len(time_series) > 0:
-                if round % 2 == 0:
-                    if algorithm == "naive":
-                        v = find_tuple_with_maximum_ncp(group_u[last_row], time_series, last_row, maximum_value, minimum_value)
-                        #logger.info("{} round: Find tuple (v) that has max ncp {}".format(round +1,v))
-                    if algorithm == "kapra":
-                        v = find_tuple_with_maximum_vl(group_u[last_row], time_series, last_row)
-                        #logger.info("{} round: Find tuple (v) that has max vl {}".format(round +1,v))
-
-                    group_v.clear()
-                    group_v[v] = time_series[v]
-                    last_row = v
-                    #del time_series[v]
-                else:
-                    if algorithm == "naive":
-                        u = find_tuple_with_maximum_ncp(group_v[last_row], time_series, last_row, maximum_value, minimum_value)
-                        #logger.info("{} round: Find tuple (u) that has max ncp {}".format(round+1, u))
-                    if algorithm == "kapra":
-                        u = find_tuple_with_maximum_vl(group_v[last_row], time_series, last_row)
-                        #logger.info("{} round: Find tuple (u) that has max vl {}".format(round+1, u))
-                    
-                    group_u.clear()
-                    group_u[u] = time_series[u]
-                    last_row = u
-                    #del time_series[u]
-
-        # Now Assigned to group with lower uncertain penality
-        index_keys_time_series = [index for (index, key) in enumerate(time_series) if key not in [u, v]]
-        random.shuffle(index_keys_time_series)
-        # add random row to group with lower NCP
-        keys = [list(time_series.keys())[x] for x in index_keys_time_series] 
-        for key in keys:
-            row_temp = time_series[key]
-            group_u_values = list(group_u.values())
-            group_v_values = list(group_v.values())
-            group_u_values.append(row_temp)
-            group_v_values.append(row_temp)
-
-            if algorithm == "naive":
-                ncp_u = compute_normalized_certainty_penalty_on_ai(group_u_values, maximum_value, minimum_value)
-                ncp_v = compute_normalized_certainty_penalty_on_ai(group_v_values, maximum_value, minimum_value)
-
-                if ncp_v < ncp_u:
-                    group_v[key] = row_temp
-                else:
-                    group_u[key] = row_temp
-                del time_series[key]
-
-            if algorithm == "kapra":
-                vl_u = compute_instant_value_loss(group_u_values)
-                vl_v = compute_instant_value_loss(group_v_values)
-
-                if vl_v < vl_u:
-                    group_v[key] = row_temp
-                else:
-                    group_u[key] = row_temp
-                del time_series[key]
-
-
-        #logger.info("Group u: {}, Group v: {}".format(len(group_u), len(group_v)))
-        if len(group_u) > partition_size:
-            top_down_greedy_clustering(algorithm=algorithm, time_series=group_u, partition_size=partition_size,
-                                          maximum_value=maximum_value, minimum_value=minimum_value,
-                                          time_series_clustered=time_series_clustered, tree_structure=tree_structure, 
-                                          group_label=group_label+"a") # label : to track node position
-        else:
-            time_series_clustered.append(group_u)
-            tree_structure.append(group_label)
-
-        if len(group_v) > partition_size:
-            top_down_greedy_clustering(algorithm=algorithm, time_series=group_v, partition_size=partition_size,
-                                          maximum_value=maximum_value, minimum_value=minimum_value,
-                                          time_series_clustered=time_series_clustered, tree_structure=tree_structure, 
-                                          group_label=group_label+"b") # label : to track node position
-        else:
-            time_series_clustered.append(group_v)
-            tree_structure.append(group_label)
-
+    if len(group_v) > size:
+        top_down_greedy_clustering(algorithm, group_v, size, T_clustered,
+                T_structure, label + 'b', T_max_vals, T_min_vals) # Extend label with 'b'
+    else:
+        T_clustered.append(group_v)
+        T_structure.append(label)
 
 def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clustered=None, tree_structure=None, 
                                               partition_size=None, maximum_value=None, minimum_value=None,
@@ -247,7 +223,7 @@ def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clu
             group_label = tree_structure[index_group_1]
             index_neighbour = -1
             measure_neighbour = float('inf') 
-            for index_label, label in enumerate(tree_structure): 
+            for index_label, label in enumerate(tree_structure): # Nearest neighbour
                     if label[:-1] == group_label[:-1]: 
                         if index_label != index_group_1: 
                             if index_label not in index_change:
@@ -257,9 +233,9 @@ def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clu
                 table_1 = g_group_1_values + list(time_series_clustered[index_neighbour].values())
                 
                 if algorithm == "naive":
-                    measure_neighbour = compute_normalized_certainty_penalty_on_ai(table=table_1, maximum_value=maximum_value, minimum_value=minimum_value)
+                    measure_neighbour = normalized_certainty_penalty(table=table_1, maximum_value=maximum_value, minimum_value=minimum_value)
                 if algorithm == "kapra":
-                    measure_neighbour = compute_instant_value_loss(table=table_1)
+                    measure_neighbour = instant_value_loss(table=table_1)
 
                 group_merge_neighbour = dict()
                 group_merge_neighbour.update(g_group_1)
@@ -278,11 +254,11 @@ def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clu
                                 if key not in g_group_2.keys(): 
                                 
                                     if algorithm == "naive":
-                                        temp_measure = compute_normalized_certainty_penalty_on_ai(table=g_group_2_values + [time_series], 
+                                        temp_measure = normalized_certainty_penalty(table=g_group_2_values + [time_series], 
                                                                                             maximum_value=maximum_value, 
                                                                                             minimum_value=minimum_value)
                                     if algorithm == "kapra":
-                                        temp_measure = compute_instant_value_loss(table=g_group_2_values + [time_series])
+                                        temp_measure = instant_value_loss(table=g_group_2_values + [time_series])
 
 
                                     if temp_measure < round_measure:
@@ -329,15 +305,13 @@ def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clu
                                                   tree_structure=tree_structure, partition_size=partition_size, 
                                                   maximum_value=maximum_value, minimum_value=minimum_value)
     
-
-def find_group_with_min_value_loss(group_to_search=None, group_to_merge=dict(), index_ignored=list()):
+def find_group_with_min_ivl(group_to_search=None, group_to_merge=dict(), index_ignored=list()):
     min_p_group = {"group" : dict(), "index" : None, "vl" : float("inf")} 
     for index, group in enumerate(group_to_search):
         if index not in index_ignored: 
-            vl = compute_instant_value_loss(list(group.values()) + list(group_to_merge.values()))
+            vl = instant_value_loss(list(group.values()) + list(group_to_merge.values()))
             if vl < min_p_group["vl"]:
                 min_p_group["vl"] = vl
                 min_p_group["group"] = group
                 min_p_group["index"] = index
     return min_p_group["group"], min_p_group["index"]
-

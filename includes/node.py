@@ -5,6 +5,7 @@ from saxpy.alphabet import cuts_for_asize
 from loguru import logger
 from saxpy.paa import paa
 
+MAX_LEVEL = 5 # Maximum # of different chars in SAX patterns
 
 class Node:
 
@@ -21,6 +22,7 @@ class Node:
         self.size = len(group)  # numbers of time series contained
         self.label = label  # each node has tree possible labels: bad-leaf, good-leaf or intermediate
         self.group = group  # group obtained from k-anonymity top-down
+        # TODO: Remove below attributes
         self.child_node = list()  # all childs node
         self.parent = parent  # parent
 
