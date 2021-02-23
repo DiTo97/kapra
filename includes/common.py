@@ -4,8 +4,6 @@ import sys
 
 import numpy as np
 
-from loguru import logger
-
 ROUNDS = 6 # # of NCP maximization rounds. By up to 6 rounds,
            # we can achieve more than 98:75% of the maximal penalty
 
@@ -67,6 +65,17 @@ def find_tuple_with_max_vl(base, T, key):
                 best = k
 
     return best
+    
+def find_group_with_min_vl(group_to_search=None, group_to_merge=dict(), index_ignored=list()):
+    min_p_group = {"group" : dict(), "index" : None, "vl" : float("inf")} 
+    for index, group in enumerate(group_to_search):
+        if index not in index_ignored: 
+            vl = instant_value_loss(list(group.values()) + list(group_to_merge.values()))
+            if vl < min_p_group["vl"]:
+                min_p_group["vl"] = vl
+                min_p_group["group"] = group
+                min_p_group["index"] = index
+    return min_p_group["group"], min_p_group["index"]
 
 def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         T_structure, label='o', T_max_vals=None, T_min_vals=None):
@@ -75,8 +84,8 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
     Utility-based Anonymization for Privacy Preservation with Less Information Loss, 4.2
 
     It mimics the construction of a binary tree with a number of separate list/dict structures. At each clustering level the data is split
-    in two smaller groups, each minimizing the intra-NCP among its records. Each bipartite group is assigned a unique label,
-    which extends the label of its larger parent group, in order to track its path from root to tip.
+    in two smaller groups, each minimizing the intra-NCP (naive) or -VL (KAPRA) among its records. Each bipartite group is marked
+    with a unique label, which extends the label of its larger parent group, in order to track its path from root to tip.
 
     Parameters
     ----------
@@ -104,12 +113,6 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
     :param T_min_vals: list of int - None
         List of min values for each QI attribute
     """
-
-    if algorithm == 'naive' \
-            and (T_max_vals == None or T_min_vals == None):
-        logger.error('No QI attribute boundaries are available, but they are required by the naive'
-                + ' (k, P)-anonymity algorithm to compute the NPC metric')
-        exit(1)
 
     # If there are less than 2*size records in T, there is no way
     # to produce two valid cuts >= size. The recursion can then stop.
@@ -197,7 +200,24 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         T_clustered.append(group_v)
         T_structure.append(label)
 
-def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clustered=None, tree_structure=None, 
+def postprocessing(algorithm, size, T_clustered, T_structure,
+        T_postprocessed, T_max_vals=None, T_min_vals=None):
+    """
+    Top down greedy search postprocessing, from Xu et al. 2006,
+    Utility-based Anonymization for Privacy Preservation with Less Information Loss, 4.2 bottom
+
+    It prevents final groups from being smaller than `size`. Indeed `top_down_greedy_clustering()` may produce some sub-`size` groups.
+    For each of those groups, G, it will be checked whether it is more beneficial, in terms of NPC (naive) or VL (KAPRA), to merge it:
+        - with its nearest neighbour, that is, the group with the most similar label in `T_structure`;
+        - with the group of size at least (2*`size` - |G|) that minimizes the metric.
+
+    Parameters
+    ----------
+    :param T_postprocessed: list of dict of list of int
+        List of good groups sanitized from `T_clustered`
+    """
+
+def postprocessing(algorithm, time_series_clustered=None, tree_structure=None, 
                                               partition_size=None, maximum_value=None, minimum_value=None,
                                               time_series_postprocessed=None):
     """
@@ -304,14 +324,61 @@ def top_down_greedy_clustering_postprocessing(algorithm="naive", time_series_clu
         top_down_greedy_clustering_postprocessing(algorithm=algorithm, time_series_clustered=time_series_postprocessed, 
                                                   tree_structure=tree_structure, partition_size=partition_size, 
                                                   maximum_value=maximum_value, minimum_value=minimum_value)
+
+def create_tree():
+    # good leaf nodes
+    good_leaf_nodes = list()
+    bad_leaf_nodes = list()
+    # creation root and start splitting node
+    logger.info("Create-tree phase: initialization and start node splitting")
+    node = Node(level=1, group=k_group, paa_value=paa_value)
+    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
+    logger.info("Create-tree phase: finish node splitting")
+
+    logger.info("Create-tree phase: start postprocessing")
+    #for x in good_leaf_nodes:
+    #   logger.info("Good leaf node {}, {}".format(x.size, x.pattern_representation))
+    #for x in bad_leaf_nodes:
+    #   logger.info("Bad leaf node {}".format(x.size))
+    if len(bad_leaf_nodes) > 0:
+    #    logger.info("Add bad node {} to good node, start postprocessing".format(len(bad_leaf_nodes)))
+        Node.postprocessing(good_leaf_nodes, bad_leaf_nodes)
+    #    for x in good_leaf_nodes:
+    #        logger.info("Now Good leaf node {}, {}".format(x.size, x.pattern_representation))
+    logger.info("Create-tree phase: finish postprocessing")
+    for node in good_leaf_nodes:
+        pr = node.pattern_representation
+        for key in node.group:
+            prs_dict[key] = pr
+
+
+    # create-tree phase
+    good_leaf_nodes = list()
+    bad_leaf_nodes = list()
+
+    # creation root and start splitting node
+    logger.info("Create-tree phase: initialization and start node splitting with entire dataset")
+    node = Node(level=1, group=time_series_dict, paa_value=paa_value)
+    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
+    logger.info("Create-tree phase: finish node splitting")
+
+    # recycle bad-leaves phase
+    logger.info("Start recycle bad-leaves phase")
+    suppressed_nodes = list()
+    if(len(bad_leaf_nodes) > 0):
+        Node.recycle_bad_leaves(p_value, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa_value)
+    logger.info("Finish recycle bad-leaves phase")
+    suppressed_nodes_list = list()
+    for node in suppressed_nodes:
+        suppressed_nodes_list.append(node.group) # suppressed nodes!!!
     
-def find_group_with_min_ivl(group_to_search=None, group_to_merge=dict(), index_ignored=list()):
-    min_p_group = {"group" : dict(), "index" : None, "vl" : float("inf")} 
-    for index, group in enumerate(group_to_search):
-        if index not in index_ignored: 
-            vl = instant_value_loss(list(group.values()) + list(group_to_merge.values()))
-            if vl < min_p_group["vl"]:
-                min_p_group["vl"] = vl
-                min_p_group["group"] = group
-                min_p_group["index"] = index
-    return min_p_group["group"], min_p_group["index"]
+    # group formation phase
+    # preprocessing
+    logger.info("Start group formation phase")
+    pattern_representation_dict = dict() 
+    p_group_list = list() 
+    for node in good_leaf_nodes: 
+        p_group_list.append(node.group)
+        pr = node.pattern_representation
+        for key in node.group:
+            pattern_representation_dict[key] = pr

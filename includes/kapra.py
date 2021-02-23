@@ -9,6 +9,6 @@ from loguru import logger
 from .io import load_dataset
 
 def KAPRA(k_value, P_value, paa_value, data_path):
-    QI_min_vals, QI_max_vals, QI_dict, A_s_dict = load_dataset(data_path)
+    _, _, QI_dict, A_s_dict = load_dataset(data_path)
 
     logger.info('Launching KAPRA (k, P)-anonymity algorithm...')
