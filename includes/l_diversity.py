@@ -1,98 +1,55 @@
-from dataset_anonymized import DatasetAnonymized
 import math
 import numpy as np 
 import random
 
-
-def get_time_series_envelope(pattern_anonymized_data: list, key: str):
-    """given anonymized dataset T_star and  a time-series Q key, it returns PS(Q)
-    """
-    # inside the right pattern group, whose serieses have same anonymization envelope
-    # as Q? Those are PS(Q)
-    for p_group in pattern_anonymized_data:
-        for node in p_group:
-            if key in node.group.keys():
-                return list(node.group.keys())
-
-
-def get_equivalence_class(v_i: int, timeSeriesEnvelope: list, vi_dict: dict):
-    """given an attribute value v_i, finds its equivalence class.
+def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, l: int, epsilon: int):
+    """enforces the l-diversity on the records whose keys are inside A_s_dict
 
     Parameters
     ----------
-    v_i : int
-        sensitive data value to be matched against
+    pattern_dict: dict
+        dictionary with records keys as keys and pattern representations as values
     
-    timeSeriesEnvelope : list
-        PS(Q) (as list of keys)
+    A_s_dict: dict
+        dictionary with records keys as keys and sensitive attribute values as values
 
-    vi_dict : dict
-        dictionary containing row id as key and sensitive attribute as value
-    """
-    ecs = []
-    for key in timeSeriesEnvelope:
-        if key in vi_dict and vi_dict[key] == v_i:
-            ecs.append(key)
-    return ecs
-
-def get_equivalence_classes(vi_dict: dict, pattern_anonymized_data: list):
-    """given a time series dataset, yields the equivalence classes
-    as a dictionary of lists (being the equivalence classes)
+    k_group_list: list
+        list of k-groups; list elements are record keys
     
-    Parameters
-    ----------
-    vi_dict : dict
-        dictionary containing row id as key and sensitive attribute as value
+    l: int
+        l-value for l-diversity
+
+    epsilon: int
+        how much to potentially perturbate data (data will be perturbed of a value in range [-epsilon, epsilon])
     """
-    d = vi_dict.copy()
-    # set is better than list here since we'll delete lots of elements
-    keyset = set(d.keys())
-    ecs = {}
-    for key in keyset.copy():
-        ec = get_equivalence_class(
-            vi_dict[key], 
-            get_time_series_envelope(pattern_anonymized_data, key), 
-            d
-        )
-        ecs[vi_dict[key]] = ec
+    PS_R = None
+    keyset = set()
+    diff_senstitive_values = set(A_s_dict.values())
 
-        for el in ec: 
-            keyset.remove(el)
-            del d[el]
-    return ecs
+    for key in A_s_dict:  # loop over record keys. A_s_dict[key] is sensitive data of that record
+        if key in keyset: continue  # already dealt with that record
+        
+        keyset.add(key)
 
+        # find PS(Q)
+        for k_group in k_group_list:
+            # derive the right p-group
+            if key in k_group:
+                PS_R = [k for k in k_group if pattern_dict[k] == pattern_dict[key]]
 
-def enforce_l_diversity(pattern_anonymized_data: list, l: int, vi_dict: dict, epsilon: int = 1):
-    """
-    enforces l-diversity.
+        # find equivalence class, i.e. records in PS_R having same sensitive attribute
+        EC_v = [k for k in PS_R if A_s_dict[k] == A_s_dict[key]]
+        keyset.update(EC_v)
 
-    Parameters
-    ----------
-    pattern_anonymized_data : list
-        the dataset anonymized by pattern
+        # some tuples can be suppressed after (k,p)-anonymity, so PS_R and EC_v might be
+        # empty - in which case we'll just skip this remaining step.
+        if PS_R and EC_v:
+            # l-diversity is satisfied, no need to take action
+            if len(EC_v) / len(PS_R) <= 1/l: continue
 
-    l : int
-        value for l-diversity
-
-    vi_dict : dict
-        dictionary containing row id as key and sensitive attribute as value
-
-    epsilon : int
-        how much to perturbate sensitive data
-    """
-
-    ecs = get_equivalence_classes(vi_dict, pattern_anonymized_data)
-    for key in vi_dict:
-        ts_envelopes = get_time_series_envelope(pattern_anonymized_data, key)
-
-        l_val = len(ecs[vi_dict[key]])/len(ts_envelopes)
-        if l_val <= 1/l: continue  # l-diversity is satisfied
-
-        x_i = len(ecs[vi_dict[key]]) - math.floor(len(ts_envelopes)/l)
-        records = np.random.default_rng().choice(ecs[vi_dict[key]], size=x_i, replace=False)
-
-        for r in records:
-            orig_value = vi_dict[r]
-            # will the change impact l-diversity?
-            while vi_dict[r] in ecs:  # ecs has as keys all different sensitive attributes
-                vi_dict[r] = orig_value + random.randint(-epsilon, epsilon)
+            # data needs to be perturbed.
+            x_i = len(EC_v) - math.floor(len(PS_R)/l)
+            for key_ec in np.random.default_rng().choice(EC_v, size=x_i, replace=False):
+                orig = A_s_dict[key_ec]
+                while A_s_dict[key_ec] in diff_senstitive_values:
+                    A_s_dict[key_ec] = orig + random.randint(-epsilon, epsilon)
