@@ -14,7 +14,7 @@ from includes.kapra import KAPRA
 from includes.io import usage
 
 if __name__ == "__main__":
-    if not len(sys.argv) == 6:
+    if not len(sys.argv) == 7:
         usage()
 
     # Parse arguments
@@ -23,17 +23,18 @@ if __name__ == "__main__":
     k_value = int(sys.argv[2])
     P_value = int(sys.argv[3])
     paa_value = int(sys.argv[4])
+    l_value = int(sys.argv[5])
 
-    data_path = sys.argv[5]
+    data_path = sys.argv[6]
 
     if k_value < P_value:
         logger.error('<k_value> must be greater or equal than <P_value>')
         usage()
     
     if algorithm == 'naive':
-        Naive(k_value, P_value, paa_value, data_path)
+        Naive(k_value, P_value, paa_value, l_value, data_path)
     elif algorithm == 'kapra':
-        KAPRA(k_value, P_value, paa_value, data_path)
+        KAPRA(k_value, P_value, paa_value, l_value, data_path)
     else:
         logger.error('Cannot interpret ' + algorithm
                 + ' as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')

@@ -2,7 +2,7 @@ import math
 import numpy as np 
 import random
 
-def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, l: int, epsilon: int):
+def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, l: int, epsilon: int = 5):
     """enforces the l-diversity on the records whose keys are inside A_s_dict
 
     Parameters

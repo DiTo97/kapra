@@ -7,17 +7,19 @@ from loguru import logger
 
 # Custom imports #
 from .k_anonymity import k_anonymity_top_down
-from .l_diversity import 
+from .l_diversity import enforce_l_diversity
 
 from .common import create_tree
 
 from .io import load_dataset
 from .io import save_anonymized_dataset
 
-def Naive(k_value, P_value, paa_value, data_path):
+def Naive(k_value, P_value, paa_value, l_value, data_path):
     QI_min_vals, QI_max_vals, QI_dict, A_s_dict = load_dataset(data_path)
     
     logger.info('Launching naive (k, P)-anonymity algorithm...')
+
+    # 1. Create k-groups from whole QI data
 
     logger.info('Starting top down k-anonymity...')
 
@@ -27,6 +29,8 @@ def Naive(k_value, P_value, paa_value, data_path):
            QI_k_anonymized, QI_max_vals, QI_min_vals) # will delete its entries while forming groups
 
     logger.info('Ended top down k-anonymity')
+
+    # 2. Create P-groups for each k-group
 
     logger.info('Splitting P-subgroups from ' + len(QI_k_anonymized) + ' k-groups...')
 
@@ -40,8 +44,8 @@ def Naive(k_value, P_value, paa_value, data_path):
 
     logger.info('Split all P-subgroups')
 
-    # TODO: Enforce l-diversity
-       
+    # 3. Enforce l-diversity
+    enforce_l_diversity(PR, A_s_dict, QI_k_anonymized, l_value)
 
     save_anonymized_dataset(data_path, PR,
             QI_k_anonymized, A_s_dict)
