@@ -4,6 +4,7 @@ from saxpy.sax import ts_to_string
 from saxpy.alphabet import cuts_for_asize
 from loguru import logger
 from saxpy.paa import paa
+from saxpy.sax import sax_by_chunking
 
 MAX_LEVEL = 5 # Maximum # of different chars in SAX patterns
 
@@ -67,10 +68,7 @@ class Node:
         for key, value in self.group.items():
             # to reduce dimensionality
             data = np.array(value)
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
-
+            pr = sax_by_chunking(data, self.paa_value, temp_level)
             if pr in tentative_child_node.keys():
                 tentative_child_node[pr].append(key)
             else:
@@ -207,14 +205,10 @@ class Node:
         while equal and self.level < max_level:
             temp_level = self.level + 1
             data = np.array(values_group[0])
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
+            pr = sax_by_chunking(data, self.paa_value, temp_level)
             for index in range(1, len(values_group)):
                 data = np.array(values_group[index])
-                data_znorm = znorm(data)
-                data_paa = paa(data_znorm, self.paa_value)
-                pr_2 = ts_to_string(data_paa, cuts_for_asize(temp_level))
+                pr_2 = sax_by_chunking(data, self.paa_value, temp_level)
                 if pr_2 != pr:
                     equal = False
             if equal:
@@ -222,9 +216,7 @@ class Node:
         if original_level != self.level: 
             #logger.info("New level for node: {}".format(self.level))
             data = np.array(values_group[0])
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            self.pattern_representation = ts_to_string(data_paa, cuts_for_asize(self.level))
+            self.pattern_representation = sax_by_chunking(data, self.paa_value, self.level)
         else:
             #logger.info("Can't split again, max level already reached") # max level reached
             pass
@@ -296,9 +288,7 @@ class Node:
                     if temp_level > 1:
                         values_group = list(node.group.values())
                         data = np.array(values_group[0])
-                        data_znorm = znorm(data)
-                        data_paa = paa(data_znorm, paa_value)
-                        pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
+                        pr = sax_by_chunking(data, paa_value, temp_level)
                     else:
                         pr = "a"*paa_value
                     node.level = temp_level
