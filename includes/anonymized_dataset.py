@@ -4,7 +4,8 @@ from pathlib import Path
 
 
 class AnonymizedDataset:
-    def __init__(self, anonymized_data: list = list(), pattern_anonymized_data: dict = dict(), suppressed_data: list = list(), sensitive = list()):
+    def __init__(self, anonymized_data: list = list(), pattern_anonymized_data: dict = dict(),
+                 suppressed_data: list = list(), sensitive: dict = {}):
         self.anonymized_data = anonymized_data 
         self.pattern_anonymized_data = pattern_anonymized_data 
         self.suppressed_data = suppressed_data
@@ -36,6 +37,7 @@ class AnonymizedDataset:
                 
                 value_row.append(self.pattern_anonymized_data[key]) 
                 # TODO: Insert senstive attribute
+                value_row.append(self.sensitive[key])
                 value_row.append("Group: {}".format(index))
 
                 self.final_data_anonymized[key] = value_row
@@ -56,6 +58,5 @@ class AnonymizedDataset:
         with open(output_path, "w") as file_to_write:
             value_to_print_on_file = ""
             for key, value in self.final_data_anonymized.items():
-                value_to_print_on_file = key
-                value_to_print_on_file = "{},{}".format(value_to_print_on_file, ",".join(value))
+                value_to_print_on_file = "{},{}".format(key, ",".join(value))
                 file_to_write.write(value_to_print_on_file+"\n")
