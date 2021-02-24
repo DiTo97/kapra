@@ -7,9 +7,13 @@ import numpy as np
 ROUNDS = 6 # # of NCP maximization rounds. By up to 6 rounds,
            # we can achieve more than 98:75% of the maximal penalty
 
+MAX_LEVEL = 5 # Maximum # of different chars in SAX pattern representations
+
 # Custom imports #
 from .metric import instant_value_loss
 from .metric import normalized_certainty_penalty
+
+from .node import Node
 
 def find_tuple_with_max_ncp(base, T, key, T_max_vals, T_min_vals):
     """
@@ -75,6 +79,7 @@ def find_group_with_min_vl(group_to_search=None, group_to_merge=dict(), index_ig
                 min_p_group["vl"] = vl
                 min_p_group["group"] = group
                 min_p_group["index"] = index
+
     return min_p_group["group"], min_p_group["index"]
 
 def top_down_greedy_clustering(algorithm, T, size, T_clustered,
@@ -361,61 +366,43 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
         postprocessing(algorithm, size, T_clustered, T_structure,
                 T_postprocessed, T_max_vals, T_min_vals)
 
-def create_tree():
-    ## naive
-    # good leaf nodes
+def create_tree(algorithm, T, PR, P_value, paa_value, max_level=MAX_LEVEL):
+    """
+    Split a group of records into sub-groups of at least `P_value` records with the same pattern. This procedure applies to both naive
+    and KAPRA (k, P)-anonymity, starting from a k-group or from the whole time series data, respectively.
+
+    Parameters
+    ----------
+    :param PR: dict
+        Dict of per-record pattern representations from `T`
+    """
+    # P-groups leaf nodes
+    bad_leaf_nodes  = list()
     good_leaf_nodes = list()
-    bad_leaf_nodes = list()
-    # creation root and start splitting node
-    logger.info("Create-tree phase: initialization and start node splitting")
-    node = Node(level=1, group=k_group, paa_value=paa_value)
-    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
-    logger.info("Create-tree phase: finish node splitting")
 
-    logger.info("Create-tree phase: start postprocessing")
-    #for x in good_leaf_nodes:
-    #   logger.info("Good leaf node {}, {}".format(x.size, x.pattern_representation))
-    #for x in bad_leaf_nodes:
-    #   logger.info("Bad leaf node {}".format(x.size))
-    if len(bad_leaf_nodes) > 0:
-    #    logger.info("Add bad node {} to good node, start postprocessing".format(len(bad_leaf_nodes)))
-        Node.postprocessing(good_leaf_nodes, bad_leaf_nodes)
-    #    for x in good_leaf_nodes:
-    #        logger.info("Now Good leaf node {}, {}".format(x.size, x.pattern_representation))
-    logger.info("Create-tree phase: finish postprocessing")
-    for node in good_leaf_nodes:
-        pr = node.pattern_representation
-        for key in node.group:
-            prs_dict[key] = pr
+    node = Node(level=1, group=T, paa_value=paa_value)
+    node.start_splitting(P_value, max_level, good_leaf_nodes, bad_leaf_nodes)
 
-    ## KAPRA
-    # create-tree phase
-    good_leaf_nodes = list()
-    bad_leaf_nodes = list()
-
-    # creation root and start splitting node
-    logger.info("Create-tree phase: initialization and start node splitting with entire dataset")
-    node = Node(level=1, group=time_series_dict, paa_value=paa_value)
-    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
-    logger.info("Create-tree phase: finish node splitting")
-
-    # recycle bad-leaves phase
-    logger.info("Start recycle bad-leaves phase")
     suppressed_nodes = list()
-    if(len(bad_leaf_nodes) > 0):
-        Node.recycle_bad_leaves(p_value, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa_value)
-    logger.info("Finish recycle bad-leaves phase")
-    suppressed_nodes_list = list()
+        
+    if len(bad_leaf_nodes) > 0:
+        if algorithm == 'naive':
+            Node.postprocessing(good_leaf_nodes, bad_leaf_nodes)
+        elif algorithm == 'kapra':
+            Node.recycle_bad_leaves(P_value, good_leaf_nodes,
+                    bad_leaf_nodes, suppressed_nodes, paa_value)
+
+    suppressed_groups = list()
+    P_groups = list()
+
     for node in suppressed_nodes:
-        suppressed_nodes_list.append(node.group) # suppressed nodes!!!
-    
-    # group formation phase
-    # preprocessing
-    logger.info("Start group formation phase")
-    pattern_representation_dict = dict() 
-    p_group_list = list() 
-    for node in good_leaf_nodes: 
-        p_group_list.append(node.group)
+        suppressed_groups.append(node.group)
+
+    for node in good_leaf_nodes:
+        P_groups.append(node.group)
         pr = node.pattern_representation
+
         for key in node.group:
-            pattern_representation_dict[key] = pr
+            PR[key] = pr
+
+    return P_groups, suppressed_groups

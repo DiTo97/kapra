@@ -7,6 +7,9 @@ from loguru import logger
 
 # Custom imports #
 from .k_anonymity import k_anonymity_top_down
+from .l_diversity import 
+
+from .common import create_tree
 
 from .io import load_dataset
 from .io import save_anonymized_dataset
@@ -18,47 +21,27 @@ def Naive(k_value, P_value, paa_value, data_path):
 
     logger.info('Starting top down k-anonymity...')
 
-    QI_k_anonymized = list()
+    QI_k_anonymized = list() # All k-groups from QI records
 
     k_anonymity_top_down(QI_dict.copy(), k_value,     # Copy QI_dict because top down k-anonymity                                  
            QI_k_anonymized, QI_max_vals, QI_min_vals) # will delete its entries while forming groups
 
     logger.info('Ended top down k-anonymity')
 
-    # start kp anonymity
-    prs_dict = dict()
-    k_groups_list = list()
+    logger.info('Splitting P-subgroups from ' + len(QI_k_anonymized) + ' k-groups...')
 
-    for k_group in QI_postprocessed:
-        # append group to anonymized_data (after we will create a complete dataset anonymized)
-        k_groups_list.append(k_group) 
-        # good leaf nodes
-        good_leaf_nodes = list()
-        bad_leaf_nodes = list()
-        # creation root and start splitting node
-        logger.info("Create-tree phase: initialization and start node splitting")
-        node = Node(level=1, group=k_group, paa_value=paa_value)
-        node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
-        logger.info("Create-tree phase: finish node splitting")
+    PR = dict() # All pattern representations
+                # from QI records
 
-        logger.info("Create-tree phase: start postprocessing")
-        #for x in good_leaf_nodes:
-        #   logger.info("Good leaf node {}, {}".format(x.size, x.pattern_representation))
-        #for x in bad_leaf_nodes:
-        #   logger.info("Bad leaf node {}".format(x.size))
-        if len(bad_leaf_nodes) > 0:
-        #    logger.info("Add bad node {} to good node, start postprocessing".format(len(bad_leaf_nodes)))
-            Node.postprocessing(good_leaf_nodes, bad_leaf_nodes)
-        #    for x in good_leaf_nodes:
-        #        logger.info("Now Good leaf node {}, {}".format(x.size, x.pattern_representation))
-        logger.info("Create-tree phase: finish postprocessing")
-        for node in good_leaf_nodes:
-            pr = node.pattern_representation
-            for key in node.group:
-                prs_dict[key] = pr
+    for idx, k_group in enumerate(QI_k_anonymized):
+        logger.info('Create-tree phase k-group #' + str(idx) + '...')
+        create_tree('naive', k_group, PR, P_value, paa_value)
+        logger.info('Ended Create-tree k-group #' + str(idx))
+
+    logger.info('Split all P-subgroups')
 
     # TODO: Enforce l-diversity
        
 
-    save_anonymized_dataset(data_path, prs_dict,
-            k_groups_list, A_s_dict)
+    save_anonymized_dataset(data_path, PR,
+            QI_k_anonymized, A_s_dict)

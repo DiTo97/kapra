@@ -6,8 +6,6 @@ from loguru import logger
 from saxpy.paa import paa
 from saxpy.sax import sax_by_chunking
 
-MAX_LEVEL = 5 # Maximum # of different chars in SAX patterns
-
 class Node:
 
     def __init__(self, level: int = 1, pattern_representation: str = "", label: str = "intermediate",
@@ -33,6 +31,7 @@ class Node:
         :param paa_value
         :return:
         """
+
         if self.size < p_value:
             #logger.info("size:{}, p_value:{} == bad-leaf".format(self.size, p_value))
             self.label = "bad-leaf"
