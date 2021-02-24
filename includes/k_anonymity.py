@@ -51,38 +51,39 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
 
     :param tsid_pr_dict: Dict
         Dict formed by pairs (ts_id, pattern_repr). When the procedure is called, it should be initialized to an empty value.
-
-    :param GL: Resulting list of K-groups produced by k_anonymity_bottom_up
         Filled after executing this procedure.
+
+    :param GL: List of dicts
+        Resulting list of K-groups produced by k_anonymity_bottom_up. Filled after executing this procedure.
     """
 
     PGL = list() # PGL list described in the paper, implemented as a list of dictionaries, each having mappings
-    # (time series identifier, pattern representation)
+    # (time series identifier, pattern representation). Each dictionary represents a group.
 
-    # tsid_pr_dict: a dictionary with mapping (time series identifier, pattern representation) 
     for p_subgroup in p_subgroups: 
         # node.group: contains associations (time series identifier, time series values)
         PGL.append(p_subgroup.group)
-        pr = p_subgroup.pattern_representation
+        pattern_repr = p_subgroup.pattern_representation
         for ts_id in p_subgroup.group:
-            tsid_pr_dict[ts_id] = pr
+            tsid_pr_dict[ts_id] = pattern_repr
 
-    splitted_p_subgroup = list()
+    # List containing all the resulting subgroups produced by splitting a subgroup
+    splitted_p_subgroups = list()
 
-    # List containing the indexes of the groups to be removed from the PGL list. Each element of PGL contains all the time
-    # series associated with one good leaf node
+    # List containing the indexes of the groups to be removed from the PGL list after splitting. 
     p_subgroups_splitted_idxs = list()
 
-    # Loop over the time series of each p-subgroup, implements the preprocessing stage
+    # Loop over the time series of each p-subgroup. Implements the preprocessing stage.
     # Each group contains associations (time series identifier, time series values)
     for p_subgroup_idx, p_subgroup in enumerate(PGL): 
 
         # if a p-subgroup can be splitted
         if len(p_subgroup) >= 2*p:
             
-            # Tree structure which needs to be filled by top_down_greedy_clustering, in order to later use the postprocessing on
-            # the results.
+            # Tree structure which needs to be filled by top_down_greedy_clustering, in order to later call the postprocessing
+            # function on the results.
             postprocessing_clustering_tree = list()
+
             temp_splitted_p_subgroup = list()
 
             # p_subgroup_to_be_splitted is set to the current p-subgroup, which will be splitted because of its size (>=2*p)
@@ -91,6 +92,7 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
             # Start top down greedy clustering (as reported in the paper): split the current group in subgroups having size p
             top_down_greedy_clustering("kapra", p_subgroup_to_be_splitted, p, temp_splitted_p_subgroup, postprocessing_clustering_tree)
 
+            # Initialize list containing postprocessed subgroups
             postprocessed_p_subgroups = list()
 
             # The top down greedy search method includes a post-processing phase, whose objective is to 
@@ -101,7 +103,7 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
             # Concatenate the list of all the postprocessed groups generated from the current p_subgroup to list splitted_p_subgroup
             # Splitted_p_subgroup will contain multiple groups, splitted according to top_down_greedy_clustering and postprocessed by
             # the postprocessing function
-            splitted_p_subgroup += postprocessed_p_subgroups
+            splitted_p_subgroups += postprocessed_p_subgroups
             p_subgroups_splitted_idxs.append(p_subgroup_idx) # add the index of the old group p_subgroup to index_to_remove
 
     # remove from PGL all the p-subgroups whose indexes are included in p_subgroups_splitted_idxs
@@ -110,7 +112,7 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
 
     # add to the PGL list newly formed subgroups contained in splitted_p_subgroup, 
     # after deleting the corresponding old group, which has been splitted!
-    PGL += splitted_p_subgroup
+    PGL += splitted_p_subgroups
 
     # gl: list GL from paper, which contains the k-groups
     # p_subgroups_k_promoted_idxs: indexes of the p-subgroups which are eligible to be promoted to be k-groups
@@ -120,7 +122,7 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
     for p_subgroup_idx, p_subgroup in enumerate(PGL):
         # All P-subgroups in PGL containing no fewer than k time series are taken as k-groups and simply moved into GL (they are
         # deleted from PGL).
-        # we recall that node.group is dictionary containing mappings (time series id, time series values)
+        # we recall that node.group is a dictionary containing mappings (time series id, time series values)
         # len(group): number of time series inside a group
         if len(p_subgroup) >= k:
             p_subgroups_k_promoted_idxs.append(p_subgroup_idx)
