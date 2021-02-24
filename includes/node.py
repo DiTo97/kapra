@@ -17,7 +17,6 @@ class Node:
             self.pattern_representation = pr
         else:
             self.pattern_representation = pattern_representation
-        self.members = list(group.keys())  # members time series contained in N
         self.size = len(group)  # numbers of time series contained
         self.label = label  # each node has tree possible labels: bad-leaf, good-leaf or intermediate
         self.group = group  # group obtained from k-anonymity top-down
@@ -189,7 +188,6 @@ class Node:
         """
         for key, value in node_to_add.group.items():
             node_original.group[key] = value
-        node_original.members = list(node_original.group.keys())
         node_original.size = len(node_original.group)
 
     def maximize_level_node(self, max_level):
