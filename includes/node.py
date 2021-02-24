@@ -4,13 +4,14 @@ from saxpy.sax import ts_to_string
 from saxpy.alphabet import cuts_for_asize
 from loguru import logger
 from saxpy.paa import paa
+from saxpy.sax import sax_by_chunking
 
 MAX_LEVEL = 5 # Maximum # of different chars in SAX patterns
 
 class Node:
 
     def __init__(self, level: int = 1, pattern_representation: str = "", label: str = "intermediate",
-                 group: dict = None, parent=None, paa_value: int = 3):
+                 group: dict = None, paa_value: int = 3):
         self.level = level
         self.paa_value = paa_value
         if pattern_representation == "":
@@ -23,8 +24,6 @@ class Node:
         self.label = label  # each node has tree possible labels: bad-leaf, good-leaf or intermediate
         self.group = group  # group obtained from k-anonymity top-down
         # TODO: Remove below attributes
-        self.child_node = list()  # all childs node
-        self.parent = parent  # parent
 
     def start_splitting(self, p_value: int, max_level: int, good_leaf_nodes: list(), bad_leaf_nodes: list()):
         """
@@ -64,15 +63,12 @@ class Node:
         child nodes (including TB and TG) and nc >= 2, N will really be split into nc children and then the node 
         splitting procedure will be recursively invoked on each of them 
         """
-        tentative_child_node = dict() 
+        tentative_child_node = dict()  # key: pattern, value: [RECORD_KEYS]
         temp_level = self.level + 1
         for key, value in self.group.items():
             # to reduce dimensionality
             data = np.array(value)
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
-
+            pr = sax_by_chunking(data, self.paa_value, temp_level)
             if pr in tentative_child_node.keys():
                 tentative_child_node[pr].append(key)
             else:
@@ -89,21 +85,20 @@ class Node:
         else:
             #logger.info("N can be split")
             #logger.info("Compute tentative good nodes and tentative bad nodes")
-            pr_keys = list(tentative_child_node.keys()) 
+            pr_children = list(tentative_child_node.keys()) 
             # get index tentative good node
             pattern_representation_tg = list()
-
             tg_nodes_index = list(np.where(np.array(length_all_tentative_child) >= p_value)[0])
             
             # logger.info(pr_keys)
             tg_nodes = list()
             for index in tg_nodes_index:
-                keys_elements = tentative_child_node[pr_keys[index]]
+                keys_elements = tentative_child_node[pr_children[index]]
                 dict_temp = dict()
                 for key in keys_elements:
                     dict_temp[key] = self.group[key]
                 tg_nodes.append(dict_temp)
-                pattern_representation_tg.append(pr_keys[index])
+                pattern_representation_tg.append(pr_children[index])
 
             # tentative bad nodes
             tb_nodes_index = list(np.where(np.array(length_all_tentative_child) < p_value)[0])
@@ -111,16 +106,14 @@ class Node:
             pattern_representation_tb = list()
 
             for index in tb_nodes_index:
-                keys_elements = tentative_child_node[pr_keys[index]]
+                keys_elements = tentative_child_node[pr_children[index]]
                 dict_temp = dict()
                 for key in keys_elements:
                     dict_temp[key] = self.group[key]
                 tb_nodes.append(dict_temp)
-                pattern_representation_tb.append(pr_keys[index])
+                pattern_representation_tb.append(pr_children[index])
 
-            total_size_tb_nodes = 0
-            for tb_node in tb_nodes:
-                total_size_tb_nodes += len(tb_node)
+            total_size_tb_nodes = sum(len(tb_node) for tb_node in tb_nodes)
 
             if total_size_tb_nodes >= p_value:
                 #logger.info("Merge all bad nodes in a single node, and label it as good-leaf")
@@ -129,59 +122,61 @@ class Node:
                     for key, value in tb_node.items():
                         child_merge_node_group[key] = value
                 node_merge = Node(level=self.level, pattern_representation=self.pattern_representation,
-                                  label="good-leaf", group=child_merge_node_group, parent=self, paa_value=self.paa_value)
-                self.child_node.append(node_merge)
-                good_leaf_nodes.append(node_merge)
+                                  label="intermediate", group=child_merge_node_group, paa_value=self.paa_value)
+                node_merge.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
 
-                nc = len(tg_nodes) + len(tb_nodes) 
+                nc = len(tg_nodes) + 1#len(tb_nodes)  # are we sure?
                 #logger.info("Split only tg_nodes {0}".format(len(tg_nodes)))
                 if nc >= 2:
-                    for index in range(0, len(tg_nodes)):
+                    for index in range(len(tg_nodes)):
                         node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="intermediate", group=tg_nodes[index], parent=self, paa_value=self.paa_value)
-                        self.child_node.append(node)
+                                    label="intermediate", group=tg_nodes[index], paa_value=self.paa_value)
                         node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
                 else:
-                    for index in range(0, len(tg_nodes)):
+                    for index in range(len(tg_nodes)):
                         node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="good-leaf", group=tg_nodes[index], parent=self, paa_value=self.paa_value)
-                        self.child_node.append(node)
+                                    label="good-leaf", group=tg_nodes[index], paa_value=self.paa_value)
                         good_leaf_nodes.append(node)
 
-            else: 
+            else:  # can't merge bad nodes
                 nc = len(tg_nodes) + len(tb_nodes) 
                 #logger.info("Label all tb_node {0} as bad-leaf and split only tg_nodes {1}".format(len(tb_nodes),len(tg_nodes)))
-                for index in range(0, len(tb_nodes)):
-                    node = Node(level=self.level, pattern_representation=pattern_representation_tb[index], label="bad-leaf",
-                                group=tb_nodes[index], parent=self, paa_value=self.paa_value)
-                    self.child_node.append(node)
-                    bad_leaf_nodes.append(node)
+                for index in range(len(tb_nodes)):
+                    node = Node(level=self.level, pattern_representation=pattern_representation_tb[index], label="intermediate",
+                                group=tb_nodes[index], paa_value=self.paa_value)
+                    # bad_leaf_nodes.append(node)
+                    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)  # will make it bad leaf
                 if nc >= 2:
-                    for index in range(0, len(tg_nodes)):
+                    for index in range(len(tg_nodes)):
                         node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="intermediate", group=tg_nodes[index], parent=self, paa_value=self.paa_value)
-                        self.child_node.append(node)
-                        node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
+                                    label="intermediate", group=tg_nodes[index], paa_value=self.paa_value)
+                        node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
                 else:
-                    for index in range(0, len(tg_nodes)):
-                        node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="good-leaf", group=tg_nodes[index], parent=self, paa_value=self.paa_value)
-                        self.child_node.append(node)
-                        good_leaf_nodes.append(node)
+                    self.maximize_level_node(max_level)
 
     @staticmethod
     def postprocessing(good_leaf_nodes, bad_leaf_nodes):
-        difference = float('inf')
         for bad_leaf_node in bad_leaf_nodes: 
-            pattern_representation_bad_node = bad_leaf_node.pattern_representation
+            difference = float('inf')
+            size_chosen_leaf = float('inf')
             choose_node = None
+
+            pattern_representation_bad_node = bad_leaf_node.pattern_representation
+
             for index in range(0, len(good_leaf_nodes)):
                 pattern_representation_good_node = good_leaf_nodes[index].pattern_representation
                 difference_good_bad = sum(1 for a, b in zip(pattern_representation_good_node,
                                                             pattern_representation_bad_node) if a != b)
-                                         
-                if difference_good_bad < difference:
+                
+                tentative_size = good_leaf_nodes[index].size
+                # bad leaf is merged into good leaf with highest pattern similarity
+                # Ties are broken by choosing the one with smaller size
+                if (difference_good_bad < difference 
+                    or (difference_good_bad == difference and tentative_size < size_chosen_leaf)):
+                    difference = difference_good_bad
                     choose_node = index
+                    size_chosen_leaf = tentative_size
+
             Node.add_row_to_node(good_leaf_nodes[choose_node], bad_leaf_node)
         bad_leaf_nodes = list()
 
@@ -210,14 +205,10 @@ class Node:
         while equal and self.level < max_level:
             temp_level = self.level + 1
             data = np.array(values_group[0])
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
+            pr = sax_by_chunking(data, self.paa_value, temp_level)
             for index in range(1, len(values_group)):
                 data = np.array(values_group[index])
-                data_znorm = znorm(data)
-                data_paa = paa(data_znorm, self.paa_value)
-                pr_2 = ts_to_string(data_paa, cuts_for_asize(temp_level))
+                pr_2 = sax_by_chunking(data, self.paa_value, temp_level)
                 if pr_2 != pr:
                     equal = False
             if equal:
@@ -225,9 +216,7 @@ class Node:
         if original_level != self.level: 
             #logger.info("New level for node: {}".format(self.level))
             data = np.array(values_group[0])
-            data_znorm = znorm(data)
-            data_paa = paa(data_znorm, self.paa_value)
-            self.pattern_representation = ts_to_string(data_paa, cuts_for_asize(self.level))
+            self.pattern_representation = sax_by_chunking(data, self.paa_value, self.level)
         else:
             #logger.info("Can't split again, max level already reached") # max level reached
             pass
@@ -299,9 +288,7 @@ class Node:
                     if temp_level > 1:
                         values_group = list(node.group.values())
                         data = np.array(values_group[0])
-                        data_znorm = znorm(data)
-                        data_paa = paa(data_znorm, paa_value)
-                        pr = ts_to_string(data_paa, cuts_for_asize(temp_level))
+                        pr = sax_by_chunking(data, paa_value, temp_level)
                     else:
                         pr = "a"*paa_value
                     node.level = temp_level
