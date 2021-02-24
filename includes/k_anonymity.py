@@ -27,7 +27,7 @@ def k_anonymity_top_down(QI_dict, k, QI_k_anonymized,
     # 2. Postprocess bad leaves
     QI_postprocessed = list()
     
-    postprocessing('naive', k_value, QI_k_anonymized,
+    postprocessing('naive', k, QI_k_anonymized,
             QI_tree_structure, QI_postprocessed, QI_max_vals, QI_min_vals) 
     
     QI_k_anonymized = QI_postprocessed # Return to correct data structure
