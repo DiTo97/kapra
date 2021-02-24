@@ -207,125 +207,162 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
     Utility-based Anonymization for Privacy Preservation with Less Information Loss, 4.2 bottom
 
     It prevents final groups from being smaller than `size`. Indeed `top_down_greedy_clustering()` may produce some sub-`size` groups.
-    For each of those groups, G, it will be checked whether it is more beneficial, in terms of NPC (naive) or VL (KAPRA), to merge it:
+    For each such group G, it will be checked whether it is more beneficial, in terms of NPC (naive) or VL (KAPRA), to merge it:
         - with its nearest neighbour, that is, the group with the most similar label in `T_structure`;
-        - with the group of size at least (2*`size` - |G|) that minimizes the metric.
+        - with the group at least large (2*`size` - |G|) that minimizes the metric.
 
     Parameters
     ----------
     :param T_postprocessed: list of dict of list of int
-        List of good groups sanitized from `T_clustered`
+        List of good groups merged from `T_clustered`
     """
 
-def postprocessing(algorithm, time_series_clustered=None, tree_structure=None, 
-                                              partition_size=None, maximum_value=None, minimum_value=None,
-                                              time_series_postprocessed=None):
-    """
-    Postprocessing to adjust group with size < partition_size
+    idxs_merged = list()      # Already visited groups
+    groups_merged = list()    # Resulting merged groups
+    structure_merged = list() # Updated group labels
 
-    :param algorithm: [description], defaults to "naive"
-    :param time_series_clustered: [description], defaults to None
-    :param tree_structure: [description], defaults to None
-    :param partition_size: [description], defaults to None
-    :param maximum_value: [description], defaults to None
-    :param minimum_value: [description], defaults to None
-    :param time_series_postprocessed: [description], defaults to None
-    """
-    
-    index_change = list()
-    group_change = list()
-    tree_structure_change = list()
+    # 1. Find the two candidate groups
+    for idx, bad_group in enumerate(T_clustered):
+        bad_g_size = len(bad_group)
 
-    for index_group_1, g_group_1 in enumerate(time_series_clustered):
-        g_size = len(g_group_1)
-        if g_size < partition_size:
-            g_group_1_values = list(g_group_1.values())
-            group_label = tree_structure[index_group_1]
-            index_neighbour = -1
-            measure_neighbour = float('inf') 
-            for index_label, label in enumerate(tree_structure): # Nearest neighbour
-                    if label[:-1] == group_label[:-1]: 
-                        if index_label != index_group_1: 
-                            if index_label not in index_change:
-                                index_neighbour = index_label
+        if bad_g_size < size: # For any bad group
+            bad_group_vals = list(bad_group.values())
+            label = T_structure[idx]
+
+            # 1.a Find its nearest neighbour (NN) - 1st candidate group
+
+            # Search the group's NN as the one
+            # with the most similar label
+            idx_nn = -1
+            found_nn = False
+            metric_nn = float('inf')
+
+            for other_idx, other_label in enumerate(T_structure):
+                # Per label construction, if the two labels
+                # bar the last char are equal, it means the two groups
+                # come from the same parent; hence they are the respective NN
+                if label[:-1] == other_label[:-1]: 
+                    if idx == other_idx:
+                        continue
+
+                    # If the group hasn't already been merged
+                    # with another group, mark it as a valid NN
+                    if other_idx not in idxs_merged:
+                        found_nn = True
+                        idx_nn = other_idx
+                        break
+
+            if found_nn:
+                group_nn = T_clustered[idx_nn]
+                group_merged_nn = bad_group_vals \
+                        + list(group_nn.values())
+
+                if algorithm == 'naive':
+                    metric_nn = normalized_certainty_penalty(group_merged_nn,
+                            T_max_vals, T_min_vals)
+                elif algorithm == 'kapra':
+                    metric_nn = instant_value_loss(group_merged_nn)
+
+                # Redefine group_merged_nn as dict
+                group_merged_nn = dict()
+                group_merged_nn.update(bad_group)
+                group_merged_nn.update(group_nn)
+
+            # 1.b Find the most appropriate large group (>= 2*size -|G|) - 2nd candidate group
+            metric_large_g = float('inf')
+            idx_large_g = -1
+
+            for other_idx, other_group in enumerate(T_clustered):
+                # If the group is large enough
+                if len(other_group) >= 2*size - bad_g_size: # 2*size - |G|
+                    if other_idx not in idxs_merged:
+                        group_merged_large_g = bad_group.copy()
+                        group_large_g_vals = list(group_merged_large_g.values())
+
+                        # Select the size - |G| records from the large group that minimize
+                        # the intra-NCP or VL metric with the original group
+                        for j in range(size - bad_g_size): # size - |G|
+                            tmp_metric = float('inf')
+
+                            best_record = {}
+                            best_row = []
+
+                            # Select the best record to merge
+                            # at the j-th iteration
+                            for ridx, row in other_group.items():
+                                if ridx not in group_merged_large_g.keys():
+                                    if algorithm == 'naive':
+                                        metric = normalized_certainty_penalty(group_large_g_vals + [ row ],
+                                                T_max_vals, T_min_vals)
+                                    elif algorithm == 'kapra':
+                                        metric = instant_value_loss(group_large_g_vals + [ row ])
+
+                                    if metric < tmp_metric: # Update min metric
+                                        best_rercord = { ridx : row }
+                                        tmp_metric = metric
+                                        best_row = row
             
-            if index_neighbour > 0:
-                table_1 = g_group_1_values + list(time_series_clustered[index_neighbour].values())
-                
-                if algorithm == "naive":
-                    measure_neighbour = normalized_certainty_penalty(table=table_1, maximum_value=maximum_value, minimum_value=minimum_value)
-                if algorithm == "kapra":
-                    measure_neighbour = instant_value_loss(table=table_1)
+                            group_merged_large_g.update(best_rercord)
+                            group_large_g_vals.append(best_row)
 
-                group_merge_neighbour = dict()
-                group_merge_neighbour.update(g_group_1)
-                group_merge_neighbour.update(time_series_clustered[index_neighbour])
+                        # Check if the current candidate large group
+                        # is better than any previous ones
+                        if tmp_metric < metric_large_g:
+                            metric_large_g = tmp_metric
+                            idx_large_g = other_idx
 
-            measure_other_group = float('inf')   
+                            # Isolate the records that are kept from
+                            # the original (2*size - |G|) large group
+                            leftover_group_large_g = { k : val for (k, val)
+                                    in other_group.items()
+                                    if k not in group_merged_large_g.keys() }
 
-            for index, other_group in enumerate(time_series_clustered): 
-                if len(other_group) >= 2*partition_size - g_size: #2k - |G|   
-                    if index not in index_change:    
-                        g_group_2 = g_group_1.copy()
-                        for round in range(partition_size - g_size): #k - |G|         
-                            round_measure = float('inf')
-                            g_group_2_values = list(g_group_2.values())
-                            for key, time_series in other_group.items(): 
-                                if key not in g_group_2.keys(): 
-                                
-                                    if algorithm == "naive":
-                                        temp_measure = normalized_certainty_penalty(table=g_group_2_values + [time_series], 
-                                                                                            maximum_value=maximum_value, 
-                                                                                            minimum_value=minimum_value)
-                                    if algorithm == "kapra":
-                                        temp_measure = instant_value_loss(table=g_group_2_values + [time_series])
+            # 1.c Choose which of the two candidate
+            # groups is best to merge with
+            if metric_nn < metric_large_g: 
+                idxs_merged.append(idx_nn)
+                groups_merged.append(group_merged_nn)
 
-
-                                    if temp_measure < round_measure:
-                                        round_measure = temp_measure #set new min
-                                        dict_to_add = { key : time_series }
-                            
-                            g_group_2.update(dict_to_add)
-
-                        if round_measure < measure_other_group: # last ncp : ncp of the group
-                            measure_other_group = round_measure 
-                            group_merge_other_group = g_group_2
-                            group_merge_remain = {key: value for (key, value) in other_group.items() if key not in g_group_2.keys()} 
-                            index_other_group = index
-
-            if measure_neighbour < measure_other_group: 
-                index_change.append(index_neighbour)
-                group_change.append(group_merge_neighbour)
-                tree_structure_change.append(tree_structure[index_neighbour][:-1]) 
+                structure_merged.append(label[:-1]) 
 
             else:
-                index_change.append(index_other_group)
-                group_change.append(group_merge_other_group)
-                group_change.append(group_merge_remain)
-                tree_structure_change.append("") # empty label
+                idxs_merged.append(idx_large_g)
+                # Add both groups to merge
+                groups_merged.append(group_merged_large_g)
+                groups_merged.append(leftover_group_large_g)
 
+                structure_merged.append('') # Add empty label for new group
 
-            index_change.append(index_group_1)
+            # Add the currently processed group Id
+            # to already visited groups Ids
+            idxs_merged.append(idx)
+
+    # 2. Re-assest outer data structures
+    T_clustered = [ group for (idx, group)
+            in enumerate(T_clustered)
+            if idx not in idxs_merged ]
+    T_clustered += groups_merged 
+
+    T_structured = [ label for (idx, label)
+            in enumerate(T_structured)
+            if idx not in idxs_merged]
+    T_structured += structure_merged
+
+    T_postprocessed += T_clustered
+
+    # 3. Check if there are any more bad groups
+    bad_groups_cnt = 0
+
+    for group in T_clustered:
+        if len(group) < size:
+            bad_groups_cnt +=1
     
-    time_series_clustered = [group for (index, group) in enumerate(time_series_clustered) if index not in index_change ]
-    time_series_clustered += group_change 
-
-    tree_structure = [label for (index, label) in enumerate(tree_structure) if index not in index_change]
-    tree_structure += tree_structure_change
-
-    bad_group_count = 0
-    for index, group in enumerate(time_series_clustered):
-        if len(group) < partition_size:
-            bad_group_count +=1
-
-    time_series_postprocessed += time_series_clustered
-    
-    if bad_group_count > 0:
-        top_down_greedy_clustering_postprocessing(algorithm=algorithm, time_series_clustered=time_series_postprocessed, 
-                                                  tree_structure=tree_structure, partition_size=partition_size, 
-                                                  maximum_value=maximum_value, minimum_value=minimum_value)
+    if bad_groups_cnt > 0: # Call recursively if any left
+        postprocessing(algorithm, size, T_clustered, T_structure,
+                T_postprocessed, T_max_vals, T_min_vals)
 
 def create_tree():
+    ## naive
     # good leaf nodes
     good_leaf_nodes = list()
     bad_leaf_nodes = list()
@@ -351,7 +388,7 @@ def create_tree():
         for key in node.group:
             prs_dict[key] = pr
 
-
+    ## KAPRA
     # create-tree phase
     good_leaf_nodes = list()
     bad_leaf_nodes = list()
