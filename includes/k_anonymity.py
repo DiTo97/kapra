@@ -25,10 +25,8 @@ def k_anonymity_top_down(QI_dict, k, QI_k_anonymized,
     # 2. Postprocess bad leaves
     QI_postprocessed = list()
     
-    postprocessing(algorithm='naive', time_series_clustered=QI_k_anonymized, 
-                                                tree_structure=QI_tree_structure, partition_size=k_value, 
-                                                maximum_value=QI_max_vals, minimum_value=QI_min_vals,
-                                                time_series_postprocessed=QI_postprocessed)
+    postprocessing('naive', k_value, QI_k_anonymized,
+            QI_tree_structure, QI_postprocessed, QI_max_vals, QI_min_vals) 
     
     QI_k_anonymized = QI_postprocessed # Return to correct data structure
 
@@ -102,3 +100,4 @@ def k_anonymity_bottom_up():
         k_group_list.pop(index_k_group)
         k_group.update(p_group)
         k_group_list.append(k_group)
+        
