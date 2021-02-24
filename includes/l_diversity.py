@@ -14,7 +14,7 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
         dictionary with records keys as keys and sensitive attribute values as values
 
     k_group_list: list
-        list of k-groups; list elements are record keys
+        list of k-groups
     
     l: int
         l-value for l-diversity
@@ -33,7 +33,7 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
         # find PS(Q)
         for k_group in k_group_list:
             # derive the right p-group
-            if key in k_group:
+            if key in k_group.keys():
                 PS_R = [k for k in k_group if pattern_dict[k] == pattern_dict[key]]
 
         # find equivalence class, i.e. records in PS_R having same sensitive attribute
@@ -55,38 +55,3 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                     A_s_dict[key_ec] = orig + random.randint(-epsilon, epsilon)
                 
                 PS_s_values.add(A_s_dict[key_ec])
-
-# just for testing purposes
-
-if __name__=="__main__":
-    # dataset to test, p=3, k=6
-    pattern_dict = {
-        "P1": "abb", "P2": "abb", "P3": "abb", "P4": "abc", "P5": "abc", "P6": "abc", 
-        "P7": "bbc", "P8": "bbc", "P9": "bbc", "P10": "abb", "P11": "abb", "P12": "abb",
-        "P13": "cba", "P14": "cba", "P15":"cba", "P16":"cbb", "P17":"cbb", "P18":"cbb"
-    }
-
-    k_group_list = [
-        ["P1", "P2", "P3", "P4", "P5", "P6"], 
-        ["P7", "P8", "P9", "P10", "P11", "P12"], 
-        ["P13", "P14", "P15", "P16", "P17", "P18"]
-    ]
-
-    A_s_dict = {
-        "P1": 2, "P2": 3, "P3": 5, 
-        "P4": 6, "P5": 1, "P6": 1, 
-        "P7": 3, "P8": 3, "P9": 15, 
-        "P10": 16, "P11": 16, "P12": 16,
-        "P13": 0, "P14": 0, "P15": 1,
-        "P16": 2, "P17": 2, "P18": 2
-    }
-
-    # l-diversity: we want l=2
-    enforce_l_diversity(
-        pattern_dict = pattern_dict, 
-        A_s_dict = A_s_dict, 
-        k_group_list = k_group_list, 
-        l = 2, 
-        epsilon = 5)
-    
-    print(A_s_dict)
