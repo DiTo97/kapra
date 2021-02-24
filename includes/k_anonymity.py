@@ -34,123 +34,142 @@ def k_anonymity_top_down(QI_dict, k, QI_k_anonymized,
     
     QI_k_anonymized = QI_postprocessed # Return to correct data structure
 
-def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, gl):
+def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
 
+    """
+    Bottom up group formation procedure, from Shou et al. 2013,
+    Supporting Pattern-Preserving Anonymization for Time-Series Data, 5.3.3
 
-    pgl = list() # PGL list described in the paper, implemented as a list of dictionaries, each having mappings
+    Parameters
+    ----------
+    :param p_subgroups: List of dicts
+        Each dict contained in list p_subgroups is formed by pairs (ts_id, ts_values)
+
+    :param p: int
+        P-requirement for (k, P) anonymity
+
+    :param k: int
+        K-requirement for (k, P) anonymity
+
+    :param tsid_pr_dict: Dict
+        Dict formed by pairs (ts_id, pattern_repr). When the procedure is called, it should be initialized to an empty value.
+
+    :param GL: Resulting list of K-groups produced by k_anonymity_bottom_up
+        Filled after executing this procedure.
+    """
+
+    PGL = list() # PGL list described in the paper, implemented as a list of dictionaries, each having mappings
     # (time series identifier, pattern representation)
 
     # tsid_pr_dict: a dictionary with mapping (time series identifier, pattern representation) 
     for p_subgroup in p_subgroups: 
         # node.group: contains associations (time series identifier, time series values)
-        pgl.append(p_subgroup.group)
+        PGL.append(p_subgroup.group)
         pr = p_subgroup.pattern_representation
         for ts_id in p_subgroup.group:
             tsid_pr_dict[ts_id] = pr
 
     splitted_p_subgroup = list()
+
     # List containing the indexes of the groups to be removed from the PGL list. Each element of PGL contains all the time
     # series associated with one good leaf node
     p_subgroups_splitted_idxs = list()
 
     # Loop over the time series of each p-subgroup, implements the preprocessing stage
-    for p_subgroup_idx, p_subgroup in enumerate(pgl): 
+    # Each group contains associations (time series identifier, time series values)
+    for p_subgroup_idx, p_subgroup in enumerate(PGL): 
 
         # if a p-subgroup can be splitted
         if len(p_subgroup) >= 2*p:
             
-            tree_structure = list()
-            p_group_splitted = list()
-            # p_group_to_split is set to the current p-subgroup to be splitted
-            p_group_to_split = p_subgroup
+            # Tree structure which needs to be filled by top_down_greedy_clustering, in order to later use the postprocessing on
+            # the results.
+            postprocessing_clustering_tree = list()
+            temp_splitted_p_subgroup = list()
 
-            # start top down greedy clustering
-            # This partitioning process is targeted at minimizing the 
-            # total instant value loss in the partitions. The resultant partitions, each regarded as a new P-subgroup, 
-            # will be added into PGL to replace s_i. (see last two lines of code inside this for loop)
-            top_down_greedy_clustering(algorithm="kapra", time_series=p_group_to_split, partition_size=p, 
-                                    time_series_clustered=p_group_splitted, tree_structure=tree_structure)
+            # p_subgroup_to_be_splitted is set to the current p-subgroup, which will be splitted because of its size (>=2*p)
+            p_subgroup_to_be_splitted = p_subgroup
 
-            # p_group_splitted will contain multiple groups, splitted according to top_down_greedy_clustering and
-            # generated from input group p_group
+            # Start top down greedy clustering (as reported in the paper): split the current group in subgroups having size p
+            top_down_greedy_clustering("kapra", p_subgroup_to_be_splitted, p, temp_splitted_p_subgroup, postprocessing_clustering_tree)
 
-            time_series_postprocessed = list()
+            postprocessed_p_subgroups = list()
+
             # The top down greedy search method includes a post-processing phase, whose objective is to 
             # adjust the groups so that each group has at least k tuples; in this case, the partition size is chosen to
             # be p, which is the P requirement for (k, P) anonymity
-            top_down_greedy_clustering_postprocessing(algorithm="kapra", time_series_clustered=p_group_splitted, 
-                                                        tree_structure=tree_structure, partition_size=p,
-                                                        time_series_postprocessed=time_series_postprocessed)
+            postprocessing('naive', p, temp_splitted_p_subgroup, postprocessing_clustering_tree,postprocessed_p_subgroups)
                                                             
-            # Concatenate the list of all the postprocessed groups generated from p_group to list p_group_to_add
-            splitted_p_subgroup += time_series_postprocessed
-            p_subgroups_splitted_idxs.append(p_subgroup_idx) # add the index of the old group p_group to index_to_remove
+            # Concatenate the list of all the postprocessed groups generated from the current p_subgroup to list splitted_p_subgroup
+            # Splitted_p_subgroup will contain multiple groups, splitted according to top_down_greedy_clustering and postprocessed by
+            # the postprocessing function
+            splitted_p_subgroup += postprocessed_p_subgroups
+            p_subgroups_splitted_idxs.append(p_subgroup_idx) # add the index of the old group p_subgroup to index_to_remove
 
-    # remove from PGL all the groups whose indexes are included in p_subgroups_splitted_idxs
-    pgl = [group for (index, group) in enumerate(pgl) if index not in p_subgroups_splitted_idxs]
-    # add to the PGL list the p_group_to_add, after deleting the old group, which has been splitted!
-    pgl += splitted_p_subgroup
+    # remove from PGL all the p-subgroups whose indexes are included in p_subgroups_splitted_idxs
+    # we recall that PGL contains dictionaries formed by associations (time series identifier, time series values)
+    PGL = [p_subgroup for (p_subgroup_idx, p_subgroup) in enumerate(PGL) if p_subgroup_idx not in p_subgroups_splitted_idxs]
+
+    # add to the PGL list newly formed subgroups contained in splitted_p_subgroup, 
+    # after deleting the corresponding old group, which has been splitted!
+    PGL += splitted_p_subgroup
 
     # gl: list GL from paper, which contains the k-groups
-    # p_subgroups_k_promoted_idxs: indexes of the p-subgroups which are eligible to be promoted to k groups
+    # p_subgroups_k_promoted_idxs: indexes of the p-subgroups which are eligible to be promoted to be k-groups
     p_subgroups_k_promoted_idxs = list() 
 
-    # step 1
-    # loop over the p-groups in p_group_list
-    for index, group in enumerate(pgl):
+    # loop over the p-subgroups in pgl
+    for p_subgroup_idx, p_subgroup in enumerate(PGL):
         # All P-subgroups in PGL containing no fewer than k time series are taken as k-groups and simply moved into GL (they are
         # deleted from PGL).
         # we recall that node.group is dictionary containing mappings (time series id, time series values)
         # len(group): number of time series inside a group
-        if len(group) >= k:
-            p_subgroups_k_promoted_idxs.append(index)
-            gl.append(group)
+        if len(p_subgroup) >= k:
+            p_subgroups_k_promoted_idxs.append(p_subgroup_idx)
+            GL.append(p_subgroup)
 
-    # delete newly found k-groups from PGL
-    pgl = [group for (index, group) in enumerate(pgl) if index not in p_subgroups_k_promoted_idxs]
+    # Delete newly found k-groups from PGL (which contains the "old" p_subgroups)
+    PGL = [p_subgroup for (p_subgroup_idx, p_subgroup) in enumerate(PGL) if p_subgroup_idx not in p_subgroups_k_promoted_idxs]
 
-    # step 2 - 3 - 4
     p_subgroups_k_merged_idxs = list()
     # compute the length of all the p-subgroups left in PGL
-    p_group_list_size = sum([len(group) for group in pgl])
+    card_PGL = sum([len(p_subgroup) for p_subgroup in PGL])
 
     # paper while loop: while |PGL| >= k_value
-    while p_group_list_size >= k:
+    while card_PGL >= k:
         # find the P-subgroup s1 with the minimum instant value loss, and then create a new group G = s1.
-        # k_group is group G in paper
-        k_group, index_min = find_group_with_min_vl(group_to_search=pgl, 
+        # Group G in paper and corresponding index (a k-group)
+        G, G_idx = find_group_with_min_vl(group_to_search=PGL, 
                                                             index_ignored=p_subgroups_k_merged_idxs)
-        # flag the previously found s_1 to be later removed
-        p_subgroups_k_merged_idxs.append(index_min)
-        # decrease the p-subgroup list size by the length of the previously found k-group
-        # note that each subgroup used to generate the final G should be deleted from the subgroup list
-        p_group_list_size -= len(k_group)
+        # flag the previously found s_1 to be later removed from PGL list
+        p_subgroups_k_merged_idxs.append(G_idx)
+        # decrease the p-subgroup list size by the length of the previously found k-group G
+        # note that each subgroup used to generate the final G should be deleted from the subgroup list after the completion
+        # of the merging operation
+        card_PGL -= len(G)
 
-        # Find another P-subgroup which if merged with G, produces the minimal value loss of the union of the two group
-        while len(k_group) < k:
-            group_to_add, index_group_to_add = find_group_with_min_vl(group_to_search=pgl,
-                                                                                group_to_merge=k_group, 
-                                                                                index_ignored=p_subgroups_k_merged_idxs)
+        while len(G) < k:
+            # Find another P-subgroup which if merged with G, produces the minimal value loss of the union of the two groups
+            S_min, S_min_idx = find_group_with_min_vl(PGL,G,p_subgroups_k_merged_idxs)
             # again, flag the corresponding group in PGL to be later removed
-            p_subgroups_k_merged_idxs.append(index_group_to_add)
+            p_subgroups_k_merged_idxs.append(S_min_idx)
             # merge the time series of the two k-groups
-            k_group.update(group_to_add) 
+            G.update(S_min) 
             # decrease the size of the PGL list
-            p_group_list_size -= len(group_to_add)
+            card_PGL -= len(S_min)
         # put group G into list GL
-        gl.append(k_group)   
+        GL.append(G) 
 
-    # step 5
     # remove all the p-subgroups which have been added to k-groups, by using the index list built before
-    p_group_remaining = [group for (index, group) in enumerate(pgl) if index not in p_subgroups_k_merged_idxs]
+    p_subgroups_left = [p_subgroup for (p_subgroup_idx, p_subgroup) in enumerate(PGL) if p_subgroup_idx not in p_subgroups_k_merged_idxs]
 
     # for each remaining p-subgroup
-    for p_group in p_group_remaining:
-        # find the k-group which minimizes the instant value loss
-        k_group, index_k_group = find_group_with_min_vl(group_to_search=gl,
-                                                                group_to_merge=p_group)
-        # remove the k-group from the list gl (the k-group list)
-        gl.pop(index_k_group)
-        # add the same k_group to the list again, this time with the time series of the added p-subgroup
-        gl.update(p_group)
-        gl.append(k_group)
+    for p_subgroup in p_subgroups_left:
+        # from paper: Each remaining P-subgroup in PGL will choose to join a k-group which again 
+        # minimizes the total instant value loss
+        G_prime, G_prime_idx = find_group_with_min_vl(GL,p_subgroup)
+        # remove the k-group G_prime from list GL (the k-group list)
+        GL.pop(G_prime_idx)
+        # add the same k_group G_prime to the list again, this time with the time series of the added p-subgroup
+        GL.update(p_subgroup)
+        GL.append(G_prime)
