@@ -6,8 +6,6 @@ from loguru import logger
 from saxpy.paa import paa
 from saxpy.sax import sax_by_chunking
 
-MAX_LEVEL = 5 # Maximum # of different chars in SAX patterns
-
 class Node:
 
     def __init__(self, level: int = 1, pattern_representation: str = "", label: str = "intermediate",
@@ -19,7 +17,6 @@ class Node:
             self.pattern_representation = pr
         else:
             self.pattern_representation = pattern_representation
-        self.members = list(group.keys())  # members time series contained in N
         self.size = len(group)  # numbers of time series contained
         self.label = label  # each node has tree possible labels: bad-leaf, good-leaf or intermediate
         self.group = group  # group obtained from k-anonymity top-down
@@ -33,6 +30,7 @@ class Node:
         :param paa_value
         :return:
         """
+
         if self.size < p_value:
             #logger.info("size:{}, p_value:{} == bad-leaf".format(self.size, p_value))
             self.label = "bad-leaf"
@@ -190,7 +188,6 @@ class Node:
         """
         for key, value in node_to_add.group.items():
             node_original.group[key] = value
-        node_original.members = list(node_original.group.keys())
         node_original.size = len(node_original.group)
 
     def maximize_level_node(self, max_level):

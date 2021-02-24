@@ -11,7 +11,7 @@ ANONYMIZED_DIR = 'anonymized'
 
 def usage():
     print("[*] Usage: python k_P_anonymity.py <algorithm> <k_value>"
-            + " <P_value> <paa_value> <dataset>")
+            + " <P_value> <paa_value> <l_value> <dataset>")
     exit(1)
 
 def get_min_max_QI_values_from_table(df, QI_cols):
