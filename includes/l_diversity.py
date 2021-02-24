@@ -24,7 +24,6 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
     """
     PS_R = None
     keyset = set()
-    diff_senstitive_values = set(A_s_dict.values())
 
     for key in A_s_dict:  # loop over record keys. A_s_dict[key] is sensitive data of that record
         if key in keyset: continue  # already dealt with that record
@@ -41,6 +40,7 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
         EC_v = [k for k in PS_R if A_s_dict[k] == A_s_dict[key]]
         keyset.update(EC_v)
 
+        PS_s_values = {A_s_dict[k] for k in PS_R}
         # some tuples can be suppressed after (k,p)-anonymity, so PS_R and EC_v might be
         # empty - in which case we'll just skip this remaining step.
         if PS_R and EC_v:
@@ -51,32 +51,37 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
             x_i = len(EC_v) - math.floor(len(PS_R)/l)
             for key_ec in np.random.default_rng().choice(EC_v, size=x_i, replace=False):
                 orig = A_s_dict[key_ec]
-                while A_s_dict[key_ec] in diff_senstitive_values:
+                while A_s_dict[key_ec] in PS_s_values:  # must choose value different from preexisting ones
                     A_s_dict[key_ec] = orig + random.randint(-epsilon, epsilon)
+                
+                PS_s_values.add(A_s_dict[key_ec])
 
 # just for testing purposes
 
 if __name__=="__main__":
-    # dataset to test, p=2, k=4
+    # dataset to test, p=3, k=6
     pattern_dict = {
-        "P1": "abb", "P2": "abb", "P3": "cbb", "P4": "cbb",
-        "P5": "abc", "P6": "abc", "P7": "bbc", "P8": "bbc",
-        "P9": "cba", "P10": "cba", "P11": "abb", "P12": "abb"
+        "P1": "abb", "P2": "abb", "P3": "abb", "P4": "abc", "P5": "abc", "P6": "abc", 
+        "P7": "bbc", "P8": "bbc", "P9": "bbc", "P10": "abb", "P11": "abb", "P12": "abb",
+        "P13": "cba", "P14": "cba", "P15":"cba", "P16":"cbb", "P17":"cbb", "P18":"cbb"
     }
 
     k_group_list = [
-        ["P1", "P2", "P3", "P4"], 
-        ["P5", "P6", "P7", "P8"], 
-        ["P9", "P10", "P11", "P12"]
+        ["P1", "P2", "P3", "P4", "P5", "P6"], 
+        ["P7", "P8", "P9", "P10", "P11", "P12"], 
+        ["P13", "P14", "P15", "P16", "P17", "P18"]
     ]
 
     A_s_dict = {
-        "P1": 2, "P2": 3, "P3": 5, "P4": 6,
-        "P5": 1, "P6": 1, "P7": 3, "P8": 3,
-        "P9": 15, "P10": 16, "P11": 2, "P12": 3
+        "P1": 2, "P2": 3, "P3": 5, 
+        "P4": 6, "P5": 1, "P6": 1, 
+        "P7": 3, "P8": 3, "P9": 15, 
+        "P10": 16, "P11": 16, "P12": 16,
+        "P13": 0, "P14": 0, "P15": 1,
+        "P16": 2, "P17": 2, "P18": 2
     }
 
-    # l-diversity: we want l=2 (aka l0k)
+    # l-diversity: we want l=2
     enforce_l_diversity(
         pattern_dict = pattern_dict, 
         A_s_dict = A_s_dict, 
