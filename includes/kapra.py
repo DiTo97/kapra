@@ -226,6 +226,6 @@ def KAPRA(k, p, paa_value, l_value, data_path):
 
     enforce_l_diversity(pattern_representation_dict, A_s_dict, k_group_list, l_value)
 
-    save_anonymized_dataset(data_path, pattern_representation_dict, k_group_list, A_s_dict, suppressed_groups)
+    save_anonymized_dataset(data_path, "kapra", pattern_representation_dict, k_group_list, A_s_dict, suppressed_groups)
 
 

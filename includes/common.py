@@ -137,10 +137,14 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
 
     old = seed # Last visited record
 
+    # to avoid this row to end up in two different groups
+    del T[seed]
+    ids.remove(seed)
+
     # 1.a Fill the two groups alternately for # of ROUNDS
     # while maximiziming the respective NCP (naive) or IVL (KAPRA) metric
-    for round in range(ROUNDS):
-        if round % 2 == 0:
+    for rnd in range(ROUNDS):
+        if rnd % 2 == 0:
             source = group_u
             target = group_v
         else:
@@ -185,8 +189,10 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
 
         if metric_v < metric_u:
             group_v[i] = row
+            del group_u_vals[-1]
         else:
             group_u[i] = row
+            del group_v_vals[-1]
 
         del T[i]
 

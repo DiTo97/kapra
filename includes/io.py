@@ -87,9 +87,9 @@ def load_dataset(path: str):
 
     return QI_min_vals, QI_max_vals, QI_dict, A_s_dict
 
-def save_anonymized_dataset(data_path, prs = dict(),
-        anonymized = list(), sensitive = dict(),
-        suppressed = list()):
+def save_anonymized_dataset(data_path, algorithm,
+        prs = dict(), anonymized = list(), 
+        sensitive = dict(), suppressed = list()):
     """
     Aggregate all separate k- and P- groups into a single anonymized dataset and save it to file.
 
@@ -98,6 +98,9 @@ def save_anonymized_dataset(data_path, prs = dict(),
     :param data_path: str
         Relative path to the original dataset
 
+    :param algorithm: str
+        "naive" or "kapra", will be added to anonymized file name
+        
     :param prs: dict of str - {}
         Dict of per-P-group SAX pattern representations
 
@@ -114,7 +117,7 @@ def save_anonymized_dataset(data_path, prs = dict(),
     abs_data_path = Path(data_path).absolute()
 
     # Compute output file path with '_anon' suffix
-    outfilename = abs_data_path.parts[-1].replace('.csv', '_anon.csv')
+    outfilename = abs_data_path.parts[-1].replace('.csv', '_' + algorithm + '_anon.csv')
 
     # Handle datasets coming from downsampled dir
     if abs_data_path.parent.parts[-1] == DOWNSAMPLED_DIR:
