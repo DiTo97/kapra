@@ -7,6 +7,7 @@ from pathlib import Path
 # Custom imports #
 from .anonymized_dataset import AnonymizedDataset
 
+DOWNSAMPLED_DIR = 'downsampled'
 ANONYMIZED_DIR = 'anonymized'
 
 def usage():
@@ -114,8 +115,14 @@ def save_anonymized_dataset(data_path, prs = dict(),
 
     # Compute output file path with '_anon' suffix
     outfilename = abs_data_path.parts[-1].replace('.csv', '_anon.csv')
-    outdir = abs_data_path.parent / ANONYMIZED_DIR
 
+    # Handle datasets coming from downsampled dir
+    if abs_data_path.parent.parts[-1] == DOWNSAMPLED_DIR:
+        parent_path = abs_data_path.parent.parent
+    else:
+        parent_path = abs_data_path.parent
+
+    outdir = parent_path / ANONYMIZED_DIR
     outpath = outdir / outfilename
 
     anonymized_dataset = AnonymizedDataset(anonymized,
@@ -123,3 +130,5 @@ def save_anonymized_dataset(data_path, prs = dict(),
 
     anonymized_dataset.construct()
     anonymized_dataset.save(outpath)
+
+    return outpath

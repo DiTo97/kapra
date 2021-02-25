@@ -139,7 +139,7 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
 
     # 1.a Fill the two groups alternately for # of ROUNDS
     # while maximiziming the respective NCP (naive) or IVL (KAPRA) metric
-    for round in ROUNDS:
+    for round in range(ROUNDS):
         if round % 2 == 0:
             source = group_u
             target = group_v
@@ -348,10 +348,10 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
             if idx not in idxs_merged ]
     T_clustered += groups_merged 
 
-    T_structured = [ label for (idx, label)
-            in enumerate(T_structured)
+    T_structure = [ label for (idx, label)
+            in enumerate(T_structure)
             if idx not in idxs_merged]
-    T_structured += structure_merged
+    T_structure += structure_merged
 
     T_postprocessed += T_clustered
 

@@ -33,11 +33,11 @@ class AnonymizedDataset:
                 self.final_data_anonymized[key] = list()
                 value_row = list()
                 for column_index in range(0, len(max_value)):
-                    value_row.append("[{}-{}]".format(min_value[column_index], max_value[column_index]))
+                    value_row.append("[{}|{}]".format(min_value[column_index], max_value[column_index]))
                 
                 value_row.append(self.pattern_anonymized_data[key]) 
                 # TODO: Insert senstive attribute
-                value_row.append(self.sensitive[key])
+                value_row.append(str(self.sensitive[key]))
                 value_row.append("Group: {}".format(index))
 
                 self.final_data_anonymized[key] = value_row

@@ -2,7 +2,6 @@ from loguru import logger
 
 # Custom imports #
 from .common import top_down_greedy_clustering
-from .common import top_down_greedy_clustering_postprocessing
 from .common import postprocessing
 from .common import find_group_with_min_vl
 
