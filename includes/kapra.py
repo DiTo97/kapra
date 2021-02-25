@@ -219,13 +219,13 @@ def KAPRA(k, p, paa_value, l_value, data_path):
 
     k_group_list = list()
 
-    k_anonymity_bottom_up(P_groups, p, k, pattern_representation_dict, k_group_list)
+    k_anonymity_bottom_up(P_groups, p, k, k_group_list)
 
-    print(k_group_list)
+    print([d.keys() for d in P_groups])
     logger.info("Finish group formation phase")
 
     enforce_l_diversity(pattern_representation_dict, A_s_dict, k_group_list, l_value)
 
-    save_anonymized_dataset(data_path, pattern_representation_dict, k_group_list, A_s_dict)
+    save_anonymized_dataset(data_path, pattern_representation_dict, k_group_list, A_s_dict, suppressed_groups)
 
 
