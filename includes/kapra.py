@@ -10,6 +10,8 @@ from .io import load_dataset
 from .k_anonymity import k_anonymity_bottom_up
 from .node import Node
 from .io import save_anonymized_dataset
+from .l_diversity import enforce_l_diversity
+from .common import create_tree
 
 def recycle_bad_leaves(p, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa_value):
     """
@@ -190,7 +192,7 @@ def recycle_bad_leaves(p, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa
         suppressed_nodes.append(node)
 
 
-def KAPRA(k, p, paa_value, data_path):
+def KAPRA(k, p, paa_value, l_value, data_path):
 
     """
     k-P anonymity based on work of Shou et al. 2011,
@@ -205,48 +207,24 @@ def KAPRA(k, p, paa_value, data_path):
 
     logger.info('Launching KAPRA (k, P)-anonymity algorithm...')
 
-    # create-tree phase
-    # initialize lists containing good nodes and bad nodes
-    good_leaf_nodes = list()
-    bad_leaf_nodes = list()
-
     # creation root and start splitting node
     logger.info("Create-tree phase: initialization and start node splitting with entire dataset")
-    # initialization of the root node (level=1, coarsest granularity)
-    # note that we pass as a group the whole dictionary containing all the time series of table T
-    node = Node(level=1, group=QI_time_series, paa_value=paa_value)
-    node.start_splitting(p, max_level, good_leaf_nodes, bad_leaf_nodes)
-    logger.info("Create-tree phase: finish node splitting")
-
-    # recycle bad-leaves phase
-    logger.info("Start recycle bad-leaves phase")
-    suppressed_nodes = list()
-    # if any bad leaf nodes are left after the create tree procedure, recycle the bad leaves nodes
-    if(len(bad_leaf_nodes) > 0):
-        Node.recycle_bad_leaves(p, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa_value)
-    logger.info("Finish recycle bad-leaves phase")
-    # if any bad leaf nodes are left after the recycle bad leaves procedure, add all the suppressed nodes to list 
-    # suppressed_nodes_list
-    # at the end of the procedure, good_leaf_nodes will contain all the resulting subgroups which have not been
-    # suppressed
-    suppressed_nodes_list = list()
-    # append the time series of all the suppressed nodes to the list suppressed_nodes_list
-    for node in suppressed_nodes:
-        suppressed_nodes_list.append(node.group) # suppressed nodes!!!
+    pattern_representation_dict = dict() 
+    P_groups, suppressed_groups = create_tree("kapra", QI_time_series, pattern_representation_dict, p, paa_value)
     
     # group formation phase
     # preprocessing
     logger.info("Start group formation phase")
     # dictionary containing pattern representations
-    pattern_representation_dict = dict() 
 
     k_group_list = list()
 
-    k_anonymity_bottom_up(good_leaf_nodes, p, k, pattern_representation_dict, k_group_list)
+    k_anonymity_bottom_up(P_groups, p, k, pattern_representation_dict, k_group_list)
 
+    print(k_group_list)
     logger.info("Finish group formation phase")
 
-    # TODO: Enforce l-diversity
+    enforce_l_diversity(pattern_representation_dict, A_s_dict, k_group_list, l_value)
 
     save_anonymized_dataset(data_path, pattern_representation_dict, k_group_list, A_s_dict)
 

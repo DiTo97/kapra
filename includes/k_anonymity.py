@@ -59,13 +59,6 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
     PGL = list() # PGL list described in the paper, implemented as a list of dictionaries, each having mappings
     # (time series identifier, pattern representation). Each dictionary represents a group.
 
-    for p_subgroup in p_subgroups: 
-        # node.group: contains associations (time series identifier, time series values)
-        PGL.append(p_subgroup.group)
-        pattern_repr = p_subgroup.pattern_representation
-        for ts_id in p_subgroup.group:
-            tsid_pr_dict[ts_id] = pattern_repr
-
     # List containing all the resulting subgroups produced by splitting a subgroup
     splitted_p_subgroups = list()
 
