@@ -61,6 +61,9 @@ def k_anonymity_bottom_up(p_subgroups, p, k, GL):
     # List containing the indexes of the groups to be removed from the PGL list after splitting. 
     p_subgroups_splitted_idxs = list()
 
+    for p_subgroup in p_subgroups: 
+        PGL.append(p_subgroup)
+
     # Loop over the time series of each p-subgroup. Implements the preprocessing stage.
     # Each group contains associations (time series identifier, time series values)
     for p_subgroup_idx, p_subgroup in enumerate(PGL): 

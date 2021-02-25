@@ -56,17 +56,14 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
 
     logger.info("Start group formation phase ... ")
 
-    # Dictionary containing pairs (time series identifier, pattern representation)
-    tsid_pr_dict = dict() 
-
     # List containing K-groups, each expressed as a dictionary of pairs (time series identifier, time series values)
     K_groups = list()
 
     # Call group formation algorithm 
-    k_anonymity_bottom_up(P_subgroups, P_value, k_value, tsid_pr_dict, K_groups)
+    k_anonymity_bottom_up(P_subgroups, P_value, k_value, K_groups)
 
     logger.info("End group formation phase ... ")
 
     enforce_l_diversity(P_subgroups, A_s_dict, K_groups, l_value)
 
-    save_anonymized_dataset(data_path, P_subgroups, K_groups, A_s_dict)
+    save_anonymized_dataset(data_path, PR, K_groups, A_s_dict)
