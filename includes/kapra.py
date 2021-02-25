@@ -11,6 +11,8 @@ from .l_diversity import enforce_l_diversity
 from .common import create_tree
 from .io import load_dataset
 from .io import save_anonymized_dataset
+from .l_diversity import enforce_l_diversity
+from .common import create_tree
 
 def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     _, _, QI_time_series, A_s_dict = load_dataset(data_path)

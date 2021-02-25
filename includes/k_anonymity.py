@@ -2,7 +2,6 @@ from loguru import logger
 
 # Custom imports #
 from .common import top_down_greedy_clustering
-from .common import top_down_greedy_clustering_postprocessing
 from .common import postprocessing
 from .common import find_group_with_min_vl
 
@@ -32,7 +31,7 @@ def k_anonymity_top_down(QI_dict, k, QI_k_anonymized,
     
     QI_k_anonymized = QI_postprocessed # Return to correct data structure
 
-def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
+def k_anonymity_bottom_up(p_subgroups, p, k, GL):
 
     """
     Bottom up group formation procedure, from Shou et al. 2013,
@@ -49,23 +48,12 @@ def k_anonymity_bottom_up(p_subgroups, p, k, tsid_pr_dict, GL):
     :param k: int
         K-requirement for (k, P) anonymity
 
-    :param tsid_pr_dict: Dict
-        Dict formed by pairs (ts_id, pattern_repr). When the procedure is called, it should be initialized to an empty value.
-        Filled after executing this procedure.
-
     :param GL: List of dicts
         Resulting list of K-groups produced by k_anonymity_bottom_up. Filled after executing this procedure.
     """
 
     PGL = list() # PGL list described in the paper, implemented as a list of dictionaries, each having mappings
     # (time series identifier, pattern representation). Each dictionary represents a group.
-
-    for p_subgroup in p_subgroups: 
-        # node.group: contains associations (time series identifier, time series values)
-        PGL.append(p_subgroup.group)
-        pattern_repr = p_subgroup.pattern_representation
-        for ts_id in p_subgroup.group:
-            tsid_pr_dict[ts_id] = pattern_repr
 
     # List containing all the resulting subgroups produced by splitting a subgroup
     splitted_p_subgroups = list()

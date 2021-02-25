@@ -31,19 +31,19 @@ class Node:
         :return:
         """
 
-        if self.size < p_value:
+        if self.size < p_value: # Case base 1
             #logger.info("size:{}, p_value:{} == bad-leaf".format(self.size, p_value))
             self.label = "bad-leaf"
             bad_leaf_nodes.append(self)
             return
 
-        if self.level == max_level:
+        if self.level == max_level: # Case base 2
             #logger.info("size:{}, p_value:{} == good-leaf".format(self.size, p_value))
             self.label = "good-leaf"
             good_leaf_nodes.append(self)
             return
 
-        if p_value <= self.size < 2*p_value:
+        if p_value <= self.size < 2*p_value: # Case base 3
             #logger.info("Maximize-level, size:{}, p_value:{} == good-leaf".format(self.size, p_value))
             self.maximize_level_node(max_level)
             self.label = "good-leaf"
@@ -75,7 +75,7 @@ class Node:
         length_all_tentative_child = [len(x) for x in list(tentative_child_node.values())] 
         good_leaf = np.all(np.array(length_all_tentative_child) < p_value)
        
-        if good_leaf:
+        if good_leaf: # Case base 4
             #logger.info("Good-leaf, all_tentative_child are < {}".format(p_value))
             self.label = "good-leaf"
             good_leaf_nodes.append(self)
@@ -117,40 +117,54 @@ class Node:
                 #logger.info("Merge all bad nodes in a single node, and label it as good-leaf")
                 child_merge_node_group = dict()
                 for tb_node in tb_nodes:
-                    for key, value in tb_node.items():
-                        child_merge_node_group[key] = value
+                    child_merge_node_group.update(tb_node)
+
+                """
+                The merged child's pattern is obliged to be the parent's as by construction each record would be reprocessed at self.level,
+                and at that level it would have the same pattern that put it in the parent in the first place.
+                """
                 node_merge = Node(level=self.level, pattern_representation=self.pattern_representation,
                                   label="intermediate", group=child_merge_node_group, paa_value=self.paa_value)
-                node_merge.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
 
-                nc = len(tg_nodes) + 1#len(tb_nodes)  # are we sure?
-                #logger.info("Split only tg_nodes {0}".format(len(tg_nodes)))
-                if nc >= 2:
-                    for index in range(len(tg_nodes)):
-                        node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="intermediate", group=tg_nodes[index], paa_value=self.paa_value)
-                        node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
-                else:
-                    for index in range(len(tg_nodes)):
-                        node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
-                                    label="good-leaf", group=tg_nodes[index], paa_value=self.paa_value)
-                        good_leaf_nodes.append(node)
+                """
+                There's no need to split again because the each record in the merged child would generate the very same patterns that it
+                just generated at this splitting iteration; hence, it would lead to the very same bad leaves that had to be merged together
+                """  
+                good_leaf_nodes.append(node_merge)
+
+                """
+                Here you are guaranteed two have at least 2 bad nodes (otherwise no splitting) and 1 good node (otherwise
+                exit ad case base 4). There's no need to compute nc
+                """
+                for index in range(len(tg_nodes)):
+                    node = Node(level=self.level + 1, pattern_representation=pattern_representation_tg[index],
+                                label="intermediate", group=tg_nodes[index], paa_value=self.paa_value)
+                    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)
 
             else:  # can't merge bad nodes
+                """
+                Here we are guarantered to ahve at least 1 good node (otherwise case base 4)
+                """
                 nc = len(tg_nodes) + len(tb_nodes) 
                 #logger.info("Label all tb_node {0} as bad-leaf and split only tg_nodes {1}".format(len(tb_nodes),len(tg_nodes)))
-                for index in range(len(tb_nodes)):
-                    node = Node(level=self.level, pattern_representation=pattern_representation_tb[index], label="intermediate",
-                                group=tb_nodes[index], paa_value=self.paa_value)
-                    # bad_leaf_nodes.append(node)
-                    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)  # will make it bad leaf
+                
                 if nc >= 2:
+                    """
+                    Either we have at least 2 good nodes, or at least 1 bad node
+                    """
+                    for index in range(len(tb_nodes)):
+                        node = Node(level=self.level + 1, pattern_representation=pattern_representation_tb[index], label="bad-leaf",
+                                    group=tb_nodes[index], paa_value=self.paa_value)
+                        node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes)  # will make it bad leaf
+
                     for index in range(len(tg_nodes)):
-                        node = Node(level=self.level, pattern_representation=pattern_representation_tg[index],
+                        node = Node(level=self.level + 1, pattern_representation=pattern_representation_tg[index],
                                     label="intermediate", group=tg_nodes[index], paa_value=self.paa_value)
                         node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
                 else:
-                    self.maximize_level_node(max_level)
+                    node = Node(level=self.level + 1, pattern_representation=pattern_representation_tg[0],
+                            label="intermediate", group=tg_nodes[0], paa_value=self.paa_value)
+                    node.start_splitting(p_value, max_level, good_leaf_nodes, bad_leaf_nodes) 
 
     @staticmethod
     def postprocessing(good_leaf_nodes, bad_leaf_nodes):
@@ -199,7 +213,8 @@ class Node:
         values_group = list(self.group.values())
         original_level = self.level
         equal = True
-        while equal and self.level < max_level:
+
+        while equal and self.level <= max_level:
             temp_level = self.level + 1
             data = np.array(values_group[0])
             pr = sax_by_chunking(data, self.paa_value, temp_level)
@@ -208,15 +223,13 @@ class Node:
                 pr_2 = sax_by_chunking(data, self.paa_value, temp_level)
                 if pr_2 != pr:
                     equal = False
+                    break
             if equal:
                 self.level = temp_level 
-        if original_level != self.level: 
+        if original_level != self.level: # The level has been maximized of at least 1 unit
             #logger.info("New level for node: {}".format(self.level))
             data = np.array(values_group[0])
             self.pattern_representation = sax_by_chunking(data, self.paa_value, self.level)
-        else:
-            #logger.info("Can't split again, max level already reached") # max level reached
-            pass
 
     @staticmethod
     def recycle_bad_leaves(p, good_leaf_nodes, bad_leaf_nodes, suppressed_nodes, paa_value):
