@@ -52,9 +52,10 @@ class AnonymizedDataset:
                 value_row.append(" - ") # group
                 self.final_data_anonymized[key] = value_row
 
-    def save(self, output_path):
+    def save(self, output_path, col_names):
         logger.info("Saving on file dataset anonymized")
         with open(output_path, "w") as file_to_write:
+            file_to_write.write(",".join(col_names) + "\n")
             value_to_print_on_file = ""
             for key, value in self.final_data_anonymized.items():
                 value_to_print_on_file = "{},{}".format(key, ",".join(value))

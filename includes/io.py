@@ -85,11 +85,12 @@ def load_dataset(path: str):
 
     logger.info('Loaded dataset')
 
-    return QI_min_vals, QI_max_vals, QI_dict, A_s_dict
+    return QI_min_vals, QI_max_vals, QI_dict, A_s_dict, list(df.columns.values)
 
 def save_anonymized_dataset(data_path, algorithm,
         prs = dict(), anonymized = list(), 
-        sensitive = dict(), suppressed = list()):
+        sensitive = dict(), suppressed = list(), 
+        col_names=list()):
     """
     Aggregate all separate k- and P- groups into a single anonymized dataset and save it to file.
 
@@ -132,6 +133,6 @@ def save_anonymized_dataset(data_path, algorithm,
             prs, suppressed, sensitive)
 
     anonymized_dataset.construct()
-    anonymized_dataset.save(outpath)
+    anonymized_dataset.save(outpath, col_names)
 
     return outpath
