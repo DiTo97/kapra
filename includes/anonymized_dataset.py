@@ -23,12 +23,12 @@ class AnonymizedDataset:
         for index in range(0, len(self.anonymized_data)): 
             #logger.info("Start creation Group {}".format(index))
 
-            group = self.anonymized_data[index]
+            k_group = self.anonymized_data[index]
                         
-            max_value = np.amax(np.array(list(group.values())), 0)
-            min_value = np.amin(np.array(list(group.values())), 0)
+            max_value = np.amax(np.array(list(k_group.values())), 0)
+            min_value = np.amin(np.array(list(k_group.values())), 0)
 
-            for key in group.keys():
+            for key in k_group.keys():
                 # key = row product
                 self.final_data_anonymized[key] = list()
                 value_row = list()

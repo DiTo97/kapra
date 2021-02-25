@@ -50,7 +50,7 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     PR = dict() # All pattern representations
                 # from QI records
 
-    P_subgroups, _ = create_tree('kapra', QI_time_series, PR, P_value, paa_value)
+    P_subgroups, suppressed_groups = create_tree('kapra', QI_time_series, PR, P_value, paa_value)
 
     logger.info('End KAPRA create-tree phase')
 
@@ -62,6 +62,7 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     # Call group formation algorithm 
     k_anonymity_bottom_up(P_subgroups, P_value, k_value, K_groups)
 
+    save_anonymized_dataset(data_path, "kapra", PR, K_groups, A_s_dict, suppressed_groups)
     logger.info("End group formation phase ... ")
 
     enforce_l_diversity(P_subgroups, A_s_dict, K_groups, l_value)
