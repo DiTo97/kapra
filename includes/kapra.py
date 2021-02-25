@@ -62,9 +62,8 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     # Call group formation algorithm 
     k_anonymity_bottom_up(P_subgroups, P_value, k_value, K_groups)
 
-    save_anonymized_dataset(data_path, "kapra", PR, K_groups, A_s_dict, suppressed_groups)
-    logger.info("End group formation phase ... ")
-
     enforce_l_diversity(P_subgroups, A_s_dict, K_groups, l_value)
 
-    save_anonymized_dataset(data_path, PR, K_groups, A_s_dict)
+    outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict)
+
+    logger.info('Saved anonymized dataset at: ' + str(outpath))

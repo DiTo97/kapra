@@ -55,7 +55,6 @@ def Naive(k_value, P_value, paa_value, l_value, data_path):
 
     logger.info('Enforced l-diversity')
 
-    outpath = save_anonymized_dataset(data_path, "naive", PR,
-            QI_k_anonymized, A_s_dict)
+    outpath = save_anonymized_dataset(data_path, "naive", PR, QI_k_anonymized, A_s_dict)
 
     logger.info('Saved anonymized dataset at: ' + str(outpath))
