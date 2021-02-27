@@ -14,7 +14,7 @@ from .io import save_anonymized_dataset
 from .l_diversity import enforce_l_diversity
 from .common import create_tree
 
-def KAPRA(k_value, P_value, paa_value, l_value, data_path):
+def KAPRA(K_value, P_value, paa_value, l_value, data_path):
     _, _, QI_time_series, A_s_dict = load_dataset(data_path)
     """
     k-P anonymity based on work of Shou et al. 2013,
@@ -25,7 +25,7 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     Parameters
     ----------
 
-    :param k_value: int
+    :param K_value: int
         K-requirement for (k, P) anonymity
 
     :param P_value: int
@@ -60,9 +60,9 @@ def KAPRA(k_value, P_value, paa_value, l_value, data_path):
     K_groups = list()
 
     # Call group formation algorithm 
-    k_anonymity_bottom_up(P_subgroups, P_value, k_value, K_groups)
+    k_anonymity_bottom_up(P_subgroups, P_value, K_value, K_groups)
 
-    enforce_l_diversity(P_subgroups, A_s_dict, K_groups, l_value)
+    enforce_l_diversity(PR, A_s_dict, K_groups, l_value)
 
     outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict)
 

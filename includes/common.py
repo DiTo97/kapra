@@ -197,6 +197,10 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         del T[i]
 
     # 2. Iterate recursively, or store groups if base case
+    print("\n\nsize: ", size)
+    print("length of group_u: ", len(group_u))
+    print("length of group_v: ", len(group_v))
+    print("current label: ", label)
     if len(group_u) > size:
         top_down_greedy_clustering(algorithm, group_u, size, T_clustered,
                 T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
@@ -231,11 +235,10 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
     idxs_merged = list()      # Already visited groups
     groups_merged = list()    # Resulting merged groups
     structure_merged = list() # Updated group labels
-
     # 1. Find the two candidate groups
     for idx, bad_group in enumerate(T_clustered):
+        """ print("\n bad group: \n ", bad_group) """
         bad_g_size = len(bad_group)
-
         if bad_g_size < size: # For any bad group
             bad_group_vals = list(bad_group.values())
             label = T_structure[idx]
@@ -248,11 +251,14 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
             found_nn = False
             metric_nn = float('inf')
 
+            print("T_structure is ", T_structure)
+            print("Bad group label is ", label)
             for other_idx, other_label in enumerate(T_structure):
                 # Per label construction, if the two labels
                 # bar the last char are equal, it means the two groups
                 # come from the same parent; hence they are the respective NN
-                if label[:-1] == other_label[:-1]: 
+                print("other label ", other_label)
+                if label[:-1] == other_label[:-1] or (len(label) == 1 and len(other_label) == 1 and label[0]==other_label[0]): 
                     if idx == other_idx:
                         continue
 
@@ -262,7 +268,10 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                         found_nn = True
                         idx_nn = other_idx
                         break
-
+                else:
+                    print("condition of the last labels is false")
+            print("bad group index ", idx)
+            print("indexes merged ", idxs_merged)
             if found_nn:
                 group_nn = T_clustered[idx_nn]
                 group_merged_nn = bad_group_vals \
@@ -286,6 +295,7 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
             for other_idx, other_group in enumerate(T_clustered):
                 # If the group is large enough
                 if len(other_group) >= 2*size - bad_g_size: # 2*size - |G|
+                    print("dentro if large group metric")
                     if other_idx not in idxs_merged:
                         group_merged_large_g = bad_group.copy()
                         group_large_g_vals = list(group_merged_large_g.values())
@@ -327,7 +337,13 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                             leftover_group_large_g = { k : val for (k, val)
                                     in other_group.items()
                                     if k not in group_merged_large_g.keys() }
-
+            # print("group_merged_large_g \n\n", group_merged_large_g)
+            print("Metric nn: ", str(metric_nn))
+            print("Metric large group: ", str(metric_large_g))
+            print("Found nn: ", str(found_nn))
+            # print("group merged nn ", group_merged_nn)
+            print("Bad group label: ", label)
+            print("Bad group: ", bad_group)
             # 1.c Choose which of the two candidate
             # groups is best to merge with
             if metric_nn < metric_large_g: 
@@ -337,6 +353,7 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                 structure_merged.append(label[:-1]) 
 
             else:
+                print("dentro else")
                 idxs_merged.append(idx_large_g)
                 # Add both groups to merge
                 groups_merged.append(group_merged_large_g)

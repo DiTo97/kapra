@@ -61,6 +61,7 @@ def k_anonymity_bottom_up(p_subgroups, p, k, GL):
     # List containing the indexes of the groups to be removed from the PGL list after splitting. 
     p_subgroups_splitted_idxs = list()
 
+    # Initialize PGL list with input p-subgroups
     for p_subgroup in p_subgroups: 
         PGL.append(p_subgroup)
 
@@ -78,8 +79,10 @@ def k_anonymity_bottom_up(p_subgroups, p, k, GL):
             temp_splitted_p_subgroup = list()
 
             # p_subgroup_to_be_splitted is set to the current p-subgroup, which will be splitted because of its size (>=2*p)
-            p_subgroup_to_be_splitted = p_subgroup
+            p_subgroup_to_be_splitted = p_subgroup.copy()
 
+            """ print("subgroup to be splitted: ", p_subgroup_to_be_splitted) """
+            print("Len of subgroup to be splitted", len(p_subgroup))
             # Start top down greedy clustering (as reported in the paper): split the current group in subgroups having size p
             top_down_greedy_clustering("kapra", p_subgroup_to_be_splitted, p, temp_splitted_p_subgroup, postprocessing_clustering_tree)
 
@@ -89,7 +92,10 @@ def k_anonymity_bottom_up(p_subgroups, p, k, GL):
             # The top down greedy search method includes a post-processing phase, whose objective is to 
             # adjust the groups so that each group has at least k tuples; in this case, the partition size is chosen to
             # be p, which is the P requirement for (k, P) anonymity
-            postprocessing('naive', p, temp_splitted_p_subgroup, postprocessing_clustering_tree,postprocessed_p_subgroups)
+            
+            # print("postprocessing clustering tree, after top down greedy clustering", postprocessing_clustering_tree)
+            # print("Postprocessing clustering tree ", postprocessing_clustering_tree)
+            postprocessing('kapra',p,temp_splitted_p_subgroup,postprocessing_clustering_tree,postprocessed_p_subgroups) 
                                                             
             # Concatenate the list of all the postprocessed groups generated from the current p_subgroup to list splitted_p_subgroup
             # Splitted_p_subgroup will contain multiple groups, splitted according to top_down_greedy_clustering and postprocessed by
@@ -162,5 +168,5 @@ def k_anonymity_bottom_up(p_subgroups, p, k, GL):
         # remove the k-group G_prime from list GL (the k-group list)
         GL.pop(G_prime_idx)
         # add the same k_group G_prime to the list again, this time with the time series of the added p-subgroup
-        GL.update(p_subgroup)
+        G_prime.update(p_subgroup)
         GL.append(G_prime)
