@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from loguru import logger
@@ -45,12 +44,62 @@ def get_min_max_QI_values_from_table(df, QI_cols):
 
     return QI_min_values, QI_max_values
 
-def load_dataset(path: str):
+def generate_output_path(data_path):
     """
+    Generate output path for anonymized dataset
+
     Parameters
     ----------
-    :param path: str
-        Relative path to the dataset
+    data_path : string
+        path of the original dataset
+
+    Returns
+    -------
+    outpath : Windows path
+        output path for anonymized dataset
+
+    """
+    
+    abs_data_path = Path(data_path).absolute()
+
+    # Compute output file path with '_anon' suffix
+    outfilename = abs_data_path.parts[-1].replace('.csv', '_anon.csv')
+
+    # Handle datasets coming from downsampled dir
+    if abs_data_path.parent.parts[-1] == DOWNSAMPLED_DIR:
+        parent_path = abs_data_path.parent.parent
+    else:
+        parent_path = abs_data_path.parent
+
+    outdir = parent_path / ANONYMIZED_DIR
+    outpath = (outdir / outfilename)
+
+    return outpath 
+
+def load_dataset(path: str, anonym=False):
+    """
+    Load original/anonymized dataset
+
+    Parameters
+    ----------
+    path : str
+        Dataset path.
+    anonym : boolean, optional
+        Set True if loading an anonymized dataset. The default is False.
+
+    Returns
+    -------
+    QI_min_vals : TYPE
+        DESCRIPTION.
+    QI_max_vals : TYPE
+        DESCRIPTION.
+    QI_dict : dict
+        dictionary containing time series
+    A_s_dict : dict
+        dictionary containing sensitive attributes for each time series
+    col_names_QI : list
+        column names of QI_dict time series
+
     """
 
     data_path = Path(path)
@@ -63,15 +112,26 @@ def load_dataset(path: str):
     logger.info('Loading dataset...')
 
     df = pd.read_csv(data_path) # Time series data DF
-
+    
     # Extract column names
     cols = list(df.columns)[1:] # Leave column 0 out, as it contains Ids
 
-    # Extract sensitive data (A_s) DF
-    logger.info('Extracted attribute ' + cols[-1] +
-            ' as sensitive data')
-    A_s_df = df.pop(cols[-1])
-    cols.pop(-1)
+    # Remove sensitive attribute from original dataset only
+    if anonym:
+        
+        # Extract sensitive data (A_s) DF
+        logger.info('Extracted attribute ' + cols[-2] +
+                ' as sensitive data')
+        A_s_df = df.pop(cols[-2])
+        cols.pop(-2)        
+        
+    else:
+    
+        # Extract sensitive data (A_s) DF
+        logger.info('Extracted attribute ' + cols[-1] +
+                ' as sensitive data')
+        A_s_df = df.pop(cols[-1])
+        cols.pop(-1)
 
     # Convert DFs to dicts
     QI_dict = dict()  # Quasi-identifier attributes
@@ -84,8 +144,10 @@ def load_dataset(path: str):
     QI_min_vals, QI_max_vals = get_min_max_QI_values_from_table(df, cols)
 
     logger.info('Loaded dataset')
+    
+    col_names_QI = list(df.columns)
 
-    return QI_min_vals, QI_max_vals, QI_dict, A_s_dict, list(df.columns.values)
+    return QI_min_vals, QI_max_vals, QI_dict, A_s_dict, col_names_QI
 
 def save_anonymized_dataset(data_path, algorithm,
         prs = dict(), anonymized = list(), 
@@ -115,19 +177,7 @@ def save_anonymized_dataset(data_path, algorithm,
         List of P-groups of records to suppress (KAPRA-only)
     """
 
-    abs_data_path = Path(data_path).absolute()
-
-    # Compute output file path with '_anon' suffix
-    outfilename = abs_data_path.parts[-1].replace('.csv', '_' + algorithm + '_anon.csv')
-
-    # Handle datasets coming from downsampled dir
-    if abs_data_path.parent.parts[-1] == DOWNSAMPLED_DIR:
-        parent_path = abs_data_path.parent.parent
-    else:
-        parent_path = abs_data_path.parent
-
-    outdir = parent_path / ANONYMIZED_DIR
-    outpath = outdir / outfilename
+    outpath = generate_output_path(data_path)
 
     anonymized_dataset = AnonymizedDataset(anonymized,
             prs, suppressed, sensitive)
