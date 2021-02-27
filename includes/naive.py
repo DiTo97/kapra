@@ -15,7 +15,7 @@ from .io import load_dataset
 from .io import save_anonymized_dataset
 
 def Naive(k_value, P_value, paa_value, l_value, data_path):
-    QI_min_vals, QI_max_vals, QI_time_series, A_s_dict = load_dataset(data_path)
+    QI_min_vals, QI_max_vals, QI_time_series, A_s_dict, col_names = load_dataset(data_path)
     
     # If k greater than the available QI data
     if k_value > len(A_s_dict):
@@ -55,6 +55,6 @@ def Naive(k_value, P_value, paa_value, l_value, data_path):
 
     logger.info('Enforced l-diversity')
 
-    outpath = save_anonymized_dataset(data_path, "naive", PR, QI_k_anonymized, A_s_dict)
+    outpath = save_anonymized_dataset(data_path, "naive", PR, QI_k_anonymized, A_s_dict, col_names=col_names)
 
     logger.info('Saved anonymized dataset at: ' + str(outpath))
