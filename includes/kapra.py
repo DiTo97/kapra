@@ -15,7 +15,6 @@ from .l_diversity import enforce_l_diversity
 from .common import create_tree
 
 def KAPRA(K_value, P_value, paa_value, l_value, data_path):
-    _, _, QI_time_series, A_s_dict = load_dataset(data_path)
     """
     k-P anonymity based on work of Shou et al. 2013,
     Supporting Pattern-Preserving Anonymization for Time-Series Data
@@ -44,6 +43,8 @@ def KAPRA(K_value, P_value, paa_value, l_value, data_path):
     :param data_path: string
         Path of the dataset to be anonymized on disk
     """
+    _, _, QI_time_series, A_s_dict, col_names = load_dataset(data_path)
+
     # create-tree phase
     logger.info("Start KAPRA create-tree phase ... ")
 
@@ -52,6 +53,7 @@ def KAPRA(K_value, P_value, paa_value, l_value, data_path):
 
     P_subgroups, suppressed_groups = create_tree('kapra', QI_time_series, PR, P_value, paa_value)
 
+    
     logger.info('End KAPRA create-tree phase')
 
     logger.info("Start group formation phase ... ")
@@ -64,6 +66,6 @@ def KAPRA(K_value, P_value, paa_value, l_value, data_path):
 
     enforce_l_diversity(PR, A_s_dict, K_groups, l_value)
 
-    outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict)
+    outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict, col_names=col_names)
 
     logger.info('Saved anonymized dataset at: ' + str(outpath))
