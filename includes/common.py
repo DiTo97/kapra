@@ -199,11 +199,11 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         del T[i]
 
     # 2. Iterate recursively, or store groups if base case
-    print("\n\nsize: ", size)
+    """ print("\n\nsize: ", size)
     print("length of group_u: ", len(group_u))
     print("length of group_v: ", len(group_v))
     print("current label: ", label)
-    print("current t_structure: ", T_structure)
+    print("current t_structure: ", T_structure) """
     if len(group_u) >= size:
         top_down_greedy_clustering(algorithm, group_u, size, T_clustered, \
                 T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
@@ -218,8 +218,8 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         T_clustered.append(group_v)
         T_structure.append(label + 'b')
 
-    print("t_structure, end of call : ", T_structure)
-    print("\n\n")
+    """ print("t_structure, end of call : ", T_structure)
+    print("\n\n") """
 
 
 def postprocessing(algorithm, size, T_clustered, T_structure,
@@ -246,12 +246,12 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
 
     # 1. Find the two candidate groups
     # print("T clustered is ", T_clustered)
-    print("T_structure is ", T_structure)
+    """ print("T_structure is ", T_structure) """
     for idx, bad_group in enumerate(T_clustered):
         bad_g_size = len(bad_group)
         if bad_g_size < size: # For any bad group
             bad_group_vals = list(bad_group.values())
-            print("idx is ", idx)
+            """ print("idx is ", idx) """
             label = T_structure[idx]
 
             # 1.a Find its nearest neighbour (NN) - 1st candidate group
@@ -375,14 +375,14 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                 idxs_merged.append(idx_nn)
                 groups_merged.append(group_merged_nn)
                 structure_merged.append(label[:-1]) 
-                print("NN CASE")
+                # print("NN CASE")
             else:
                 # print("dentro else")
                 idxs_merged.append(idx_large_g)
                 # Add both groups to merge
                 groups_merged.append(group_merged_large_g)
                 groups_merged.append(leftover_group_large_g)
-                print("LARGE GROUP CASE")
+                # print("LARGE GROUP CASE")
                 structure_merged.append('') # Add empty label for new group
 
             # Add the currently processed group Id
@@ -409,7 +409,7 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
         if len(group) < size:
             bad_groups_cnt +=1
 
-    print("Number of bad groups before a possible recursive call: ", str(bad_groups_cnt))
+    # print("Number of bad groups before a possible recursive call: ", str(bad_groups_cnt))
 
 # def postprocessing(algorithm, size, T_clustered, T_structure, T_postprocessed, T_max_vals=None, T_min_vals=None):
     if bad_groups_cnt > 0: # Call recursively if any left

@@ -120,4 +120,4 @@ def global_anon_value_loss(anonym_path):
             r_plus[i] = int(mx)
 
         glob_vl += instant_value_loss(QI_list, r_plus=r_plus, r_minus=r_minus)
-    return glob_vl/len(df)
+    return glob_vl, glob_vl/len(df)
