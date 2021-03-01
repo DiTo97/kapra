@@ -461,7 +461,7 @@ def pattern_loss(series, pr, paa_size, znorm_threshold=0.01):
     return pl, p, p_star
 
 
-def global_pattern_loss(data_path, avg=False):
+def global_pattern_loss(data_path):
     """
     Compute global pattern loss on a given dataset and its anonymized version
 
@@ -515,10 +515,9 @@ def global_pattern_loss(data_path, avg=False):
             
     global_ploss = np.sum(plosses)
     
-    if avg:
-        global_ploss = global_ploss / num_series
+    global_ploss_avg = global_ploss / num_series
     
-    return global_ploss
+    return global_ploss, global_ploss_avg
     
 
     
