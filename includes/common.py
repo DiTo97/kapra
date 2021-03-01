@@ -154,7 +154,7 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
             target = group_u
 
         if algorithm == 'naive':
-            r = find_tuple_with_max_ncp(source[old], T, old,
+            r = find_tuple_with_max_ncp(source[old], T, old, \
                     T_max_vals, T_min_vals)
         elif algorithm == 'kapra':
             r = find_tuple_with_max_vl(source[old], T, old)
@@ -181,9 +181,9 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         group_v_vals.append(row)
 
         if algorithm == 'naive':
-            metric_u = normalized_certainty_penalty(group_u_vals,
+            metric_u = normalized_certainty_penalty(group_u_vals, \
                     T_max_vals, T_min_vals)
-            metric_v = normalized_certainty_penalty(group_v_vals,
+            metric_v = normalized_certainty_penalty(group_v_vals, \
                     T_max_vals, T_min_vals)
         elif algorithm == 'kapra':
             metric_u = instant_value_loss(group_u_vals)
@@ -205,18 +205,22 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
     print("current label: ", label)
     print("current t_structure: ", T_structure)
     if len(group_u) >= size:
-        top_down_greedy_clustering(algorithm, group_u, size, T_clustered,
+        top_down_greedy_clustering(algorithm, group_u, size, T_clustered, \
                 T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
     else:
         T_clustered.append(group_u)
-        T_structure.append(label)
+        T_structure.append(label + 'a')
 
     if len(group_v) >= size:
-        top_down_greedy_clustering(algorithm, group_v, size, T_clustered,
+        top_down_greedy_clustering(algorithm, group_v, size, T_clustered, \
                 T_structure, label + 'b', T_max_vals, T_min_vals) # Extend label with 'b'
     else:
         T_clustered.append(group_v)
-        T_structure.append(label)
+        T_structure.append(label + 'b')
+
+    print("t_structure, end of call : ", T_structure)
+    print("\n\n")
+
 
 def postprocessing(algorithm, size, T_clustered, T_structure,
         T_postprocessed, T_max_vals=None, T_min_vals=None):
@@ -241,11 +245,13 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
 
 
     # 1. Find the two candidate groups
+    # print("T clustered is ", T_clustered)
+    print("T_structure is ", T_structure)
     for idx, bad_group in enumerate(T_clustered):
-        """ print("\n bad group: \n ", bad_group) """
         bad_g_size = len(bad_group)
         if bad_g_size < size: # For any bad group
             bad_group_vals = list(bad_group.values())
+            print("idx is ", idx)
             label = T_structure[idx]
 
             # 1.a Find its nearest neighbour (NN) - 1st candidate group
@@ -256,13 +262,13 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
             found_nn = False
             metric_nn = float('inf')
 
-            print("T_structure is ", T_structure)
-            print("Bad group label is ", label)
+            # print("T_structure is ", T_structure)
+            # print("Bad group label is ", label)
             for other_idx, other_label in enumerate(T_structure):
                 # Per label construction, if the two labels
                 # bar the last char are equal, it means the two groups
                 # come from the same parent; hence they are the respective NN
-                print("other label ", other_label)
+                # print("other label ", other_label)
                 if label[:-1] == other_label[:-1]: 
                     if idx == other_idx:
                         continue
@@ -273,33 +279,37 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                         found_nn = True
                         idx_nn = other_idx
                         break
-                else:
-                    print("condition of the last labels is false")
-            print("bad group index ", idx)
-            print("indexes merged ", idxs_merged)
+            # print("bad group index ", idx)
+            # print("indexes merged ", idxs_merged)
 
+            merge_with_other_group = False
             if found_nn:
                 group_nn = T_clustered[idx_nn]
-            else:
+            elif idx_nn !=idx:
                 if idx - 1 > 0:
                     idx_nn = idx - 1
                 elif idx + 1 < len(T_structure) - 1:
-                    idx_nn = idx + 1
+                    idx_nn = idx + 1 
                 group_nn = T_clustered[idx_nn]
+                merge_with_other_group = True
 
-            group_merged_nn = bad_group_vals \
-                    + list(group_nn.values())
+            if found_nn or merge_with_other_group:
+                group_merged_nn = bad_group_vals
 
-            if algorithm == 'naive':
-                metric_nn = normalized_certainty_penalty(group_merged_nn,
-                        T_max_vals, T_min_vals)
-            elif algorithm == 'kapra':
-                metric_nn = instant_value_loss(group_merged_nn)
+                
+                group_merged_nn = group_merged_nn  \
+                            + list(group_nn.values())
+                
+                if algorithm == 'naive':
+                    metric_nn = normalized_certainty_penalty(group_merged_nn,
+                            T_max_vals, T_min_vals)
+                elif algorithm == 'kapra':
+                    metric_nn = instant_value_loss(group_merged_nn)
 
-                # Redefine group_merged_nn as dict
-            group_merged_nn = dict()
-            group_merged_nn.update(bad_group)
-            group_merged_nn.update(group_nn)
+                    # Redefine group_merged_nn as dict
+                group_merged_nn = dict()
+                group_merged_nn.update(bad_group)
+                group_merged_nn.update(group_nn)
 
             # 1.b Find the most appropriate large group (>= 2*size -|G|) - 2nd candidate group
             metric_large_g = float('inf')
@@ -308,7 +318,7 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
             for other_idx, other_group in enumerate(T_clustered):
                 # If the group is large enough
                 if len(other_group) >= 2*size - bad_g_size: # 2*size - |G|
-                    print("dentro if large group metric")
+                    # print("dentro if large group metric")
                     if other_idx not in idxs_merged:
                         group_merged_large_g = bad_group.copy()
                         group_large_g_vals = list(group_merged_large_g.values())
@@ -351,29 +361,28 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                                     in other_group.items()
                                     if k not in group_merged_large_g.keys() }
             # print("group_merged_large_g \n\n", group_merged_large_g)
-            print("Metric nn: ", str(metric_nn))
+            """ print("Metric nn: ", str(metric_nn))
             print("Metric large group: ", str(metric_large_g))
             print("Found nn: ", str(found_nn))
             # print("group merged nn ", group_merged_nn)
             print("Bad group label: ", label)
-            print("Bad group: ", bad_group)
+            print("Bad group: ", bad_group) """
             # 1.c Choose which of the two candidate
             # groups is best to merge with
-            if math.isinf(metric_nn) and math.isinf(metric_large_g):
-                continue # do something
+            """ if math.isinf(metric_nn) and math.isinf(metric_large_g):
+                continue  """
             if metric_nn < metric_large_g: 
                 idxs_merged.append(idx_nn)
                 groups_merged.append(group_merged_nn)
-
                 structure_merged.append(label[:-1]) 
-
+                print("NN CASE")
             else:
-                print("dentro else")
+                # print("dentro else")
                 idxs_merged.append(idx_large_g)
                 # Add both groups to merge
                 groups_merged.append(group_merged_large_g)
                 groups_merged.append(leftover_group_large_g)
-
+                print("LARGE GROUP CASE")
                 structure_merged.append('') # Add empty label for new group
 
             # Add the currently processed group Id
@@ -399,7 +408,10 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
     for group in T_clustered:
         if len(group) < size:
             bad_groups_cnt +=1
-    
+
+    print("Number of bad groups before a possible recursive call: ", str(bad_groups_cnt))
+
+# def postprocessing(algorithm, size, T_clustered, T_structure, T_postprocessed, T_max_vals=None, T_min_vals=None):
     if bad_groups_cnt > 0: # Call recursively if any left
         postprocessing(algorithm, size, T_clustered, T_structure,
                 T_postprocessed, T_max_vals, T_min_vals)

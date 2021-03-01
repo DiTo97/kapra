@@ -13,6 +13,8 @@ from includes.kapra import KAPRA
 
 from includes.io import usage
 
+import time
+
 if __name__ == "__main__":
     if not len(sys.argv) == 7:
         usage()
@@ -31,6 +33,11 @@ if __name__ == "__main__":
         logger.error('<k_value> must be greater or equal than <P_value>')
         usage()
     
+
+
+
+    start = time.time()
+
     if algorithm == 'naive':
         Naive(k_value, P_value, paa_value, l_value, data_path)
     elif algorithm == 'kapra':
@@ -39,3 +46,7 @@ if __name__ == "__main__":
         logger.error('Cannot interpret ' + algorithm
                 + ' as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')
         usage()
+
+    end = time.time()
+
+    print("Elapsed time in seconds : " + str(end - start) + "")
