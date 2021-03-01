@@ -27,6 +27,8 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
     epsilon: int
         how much to potentially perturbate data (data will be perturbed of a value in range [-epsilon, epsilon])
     """
+    global __perturbated__
+    __perturbated__ = {}
     PS_R = None
     keyset = set()
 
@@ -109,4 +111,4 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                             break
                         else:
                             rnd += 1
-        
+    print(f"{len(__perturbated__)} records have been perturbated")
