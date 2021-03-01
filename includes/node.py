@@ -175,6 +175,8 @@ class Node:
 
             pattern_representation_bad_node = bad_leaf_node.pattern_representation
 
+            assert len(good_leaf_nodes) > 0
+
             for index in range(0, len(good_leaf_nodes)):
                 pattern_representation_good_node = good_leaf_nodes[index].pattern_representation
                 difference_good_bad = sum(1 for a, b in zip(pattern_representation_good_node,
