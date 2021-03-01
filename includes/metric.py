@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd 
+from loguru import logger
 
 def normalized_certainty_penalty(T, T_max_vals, T_min_vals):
     """
@@ -44,30 +46,32 @@ def normalized_certainty_penalty(T, T_max_vals, T_min_vals):
     ncp_T = len(T)*ncp_t 
     return ncp_T
 
-def instant_value_loss(T):
+def instant_value_loss(T, r_plus=None, r_minus=None):
     """
     Compute the instant value loss, VL(T), from Shou et al. 2011,
     Supporting Pattern-preserving Anonymization for Time-series Data, 4.2.2
     """ 
 
-    r_plus  = list()
-    r_minus = list()
+    n = len(T[0])  # # of QI attributes in T
 
-    n = len(T[0]) # # of QI attributes in T
+    if not r_plus or not r_minus:
+        r_plus  = list()
+        r_minus = list()
 
-    for i in range(n): 
-        r_plus_i  = 0
-        r_minus_i = float('inf')
 
-        for row in T:
-            if row[i] > r_plus_i:
-                r_plus_i = row[i]
+        for i in range(n): 
+            r_plus_i  = 0
+            r_minus_i = float('inf')
 
-            if row[i] < r_minus_i:
-                r_minus_i = row[i]
+            for row in T:
+                if row[i] > r_plus_i:
+                    r_plus_i = row[i]
 
-        r_plus.append(r_plus_i) 
-        r_minus.append(r_minus_i)
+                if row[i] < r_minus_i:
+                    r_minus_i = row[i]
+
+            r_plus.append(r_plus_i) 
+            r_minus.append(r_minus_i)
     
     # Compute VL(t) and then VL(T)
     vl_t = 0
@@ -77,3 +81,43 @@ def instant_value_loss(T):
 
     vl_T = len(T)*np.sqrt(vl_t)
     return vl_T
+
+def global_anon_value_loss(anonym_path):
+    """given the nae of an anonymized dataset, loads it and computes
+    instant value loss for whole table"""
+    glob_vl = 0
+
+    # loaf dataframe, group by last column
+    df = pd.read_csv(anonym_path)
+    g_df = df.groupby(["group"])
+    for key, _ in g_df:
+        # g is a dataframe with all the anon rows belonging to group key
+        g = g_df.get_group(key)
+
+        # remove Ids
+        cols = list(g.columns)
+        g.pop(cols[0])
+        cols = cols[1:]
+
+        # remove sensitive data, sax and group (last three columns)
+        for _ in range(3):
+            g.pop(cols[-1])
+            cols.pop(-1)
+
+        QI_list = [list(g.iloc[i]) for i in range(len(g))]  # Quasi-identifier attributes
+
+        fst_row = list(g.iloc[0])
+
+        r_plus  = [0 for _ in range(len(fst_row))]
+        r_minus = [0 for _ in range(len(fst_row))]
+        
+        for i in range(len(fst_row)):  # max and min will be the same for all this anon envelope
+            # remove "[" and "]"
+            rng = fst_row[i]
+            # get min and max
+            mn, mx = rng[1:-1].split("|")
+            r_minus[i] = int(mn)
+            r_plus[i] = int(mx)
+
+        glob_vl += instant_value_loss(QI_list, r_plus=r_plus, r_minus=r_minus)
+    return glob_vl/len(df)
