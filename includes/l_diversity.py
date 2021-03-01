@@ -4,6 +4,9 @@ import random
 
 from loguru import logger
 
+# dictionary of the form id:num_round
+__perturbated__ = {}
+
 def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, l: int, epsilon: int = 3):
     """enforces the l-diversity on the records whose keys are inside A_s_dict
 
@@ -79,13 +82,13 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                     By doing so we favour the satisfaction of the l-diversity constraint at the expenses of larger information loss;
                     hence we improved the privacy capability, but degraded the utility in return.
                     """
-                    round = 1
+                    rnd = 1
                     increment = 1
                     while True:
                         # Iteratively extend the +/- boundary
                         # of the perturbative noise
-                        pos_noise = epsilon  + (increment*round)
-                        neg_noise = -epsilon - (increment*round)
+                        pos_noise = epsilon  + (increment*rnd)
+                        neg_noise = -epsilon - (increment*rnd)
 
                         noises = [pos_noise, neg_noise]
 
@@ -101,8 +104,9 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                         if perturbated:
                             PS_s_values.add(A_s_dict[key_ec])
                             logger.error('Perturbated record ' + str(key_ec)
-                                    + ' only at round #' + str(round))
+                                    + ' only at round #' + str(rnd))
+                            __perturbated__[key_ec] = rnd
                             break
                         else:
-                            round += 1
+                            rnd += 1
         
