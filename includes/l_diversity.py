@@ -107,4 +107,4 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                             break
                         else:
                             rnd += 1
-    return perturbated
+    return perturbated_dict
