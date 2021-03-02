@@ -67,13 +67,13 @@ if __name__ == "__main__":
 
     results = pd.DataFrame(columns =['ElapsedTime', 'GlobalPatternLoss', 'AveragePatternLoss', 'GlobalValueLoss', 'MeanValueLoss']) 
   
-  
+
     results.loc[0]=[float(end-start), float(global_ploss), float(global_ploss_avg), \
         float(glob_vl), float(mean_vl)]
 
     abs_data_path = Path(data_path).absolute()
 
-    outfilename = abs_data_path.parts[-1].replace('.csv', '') + "_k" + str(k_value) + "_p" \
+    outfilename = abs_data_path.parts[-1].replace('.csv', '') + "_" + algorithm + "_k" + str(k_value) + "_p" \
         + str(P_value) + "_paa" + str(paa_value) + "_l" + str(l_value) + ".csv"
 
     outfilepath = "./results/" + outfilename
