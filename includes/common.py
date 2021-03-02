@@ -204,6 +204,7 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
     print("length of group_v: ", len(group_v))
     print("current label: ", label)
     print("current t_structure: ", T_structure) """
+    assert len(group_u) > 0 and len(group_v) > 0
     if len(group_u) >= size:
         top_down_greedy_clustering(algorithm, group_u, size, T_clustered, \
                 T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
