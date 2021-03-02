@@ -50,68 +50,68 @@ def autolabel(rects, ax):
                     textcoords="offset points",
                     ha='center', va='bottom')
 
-statfile_path = sys.argv[1]
+if __name__=="__main__":
+    statfile_path = sys.argv[1]
 
-with open(Path(statfile_path), 'r') as f:
-    # a. Parse the statfile header
-    header = f.readline().split()
+    with open(Path(statfile_path), 'r') as f:
+        # a. Parse the statfile header
+        header = f.readline().split()
 
-    dataset = header[0]
-    metric = header[1]
+        dataset = header[0]
+        metric = header[1]
+        parameter = header[2]
 
-    # b. Parse the statfile rows
-    lines = f.readlines()
-    lines = list(map(lambda x: x.split(), lines))
+        # b. Parse the statfile rows
+        lines = f.readlines()
+        lines = list(map(lambda x: x.split(), lines))
 
-labels = list() # Datasets size (# of records)
+    parameters = [] # Datasets size (# of records)
+    parameters_naive = []
+    parameters_kapra = []
+    naive_vals = []
+    kapra_vals = []
 
-naive_vals = list()
-kapra_vals = list()
+    for l in lines:
+        if l[0] == 'naive':
+            naive_vals.append(float(l[1]))
+            parameters_naive.append(int(l[2]))
+        elif l[0] == 'kapra':
+            kapra_vals.append(float(l[1]))
+            parameters_kapra.append(int(l[2]))
+        else:
+            logger.error('Cannot interpret ' + l[0]
+                    + ' as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')
+            exit(1)
+        if int(l[2]) not in parameters: parameters.append(int(l[2]))
 
-for l in lines:
-    if l[0] == 'naive':
-        naive_vals.append(float(l[2]))
-    elif l[0] == 'kapra':
-        kapra_vals.append(float(l[2]))
-    else:
-        logger.error('Cannot interpret ' + l[0]
-                + ' as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')
-        exit(1)
+    fig, ax = plt.subplots()
 
-    if l[1] not in labels:
-        labels.append(l[1])
+    ax.plot(parameters_naive, naive_vals, label="Naive", c="blue")
+    ax.scatter(parameters_naive, naive_vals, c="blue", marker="x")
 
-x = np.arange(len(labels))
-w = 0.35 # Barcharts width
+    ax.plot(parameters_kapra, kapra_vals, label="KAPRA", c="orange")
+    ax.scatter(parameters_kapra, kapra_vals, c="orange", marker="d")
 
-fig, ax = plt.subplots()
+    # 1. Generate appropriate labels
+    ylabel = 'Time (s)' \
+        if metric == 'scalability' \
+        else 'Loss'
 
-rects_naive = ax.bar(x - w / 2, naive_vals, w, label='Naive')
-rects_kapra = ax.bar(x + w / 2, kapra_vals, w, label='KAPRA')
+    title = dataset + ' - ' \
+        + metric.capitalize().replace('_', ' ')
 
-# 1. Generate appropriate labels
-ylabel = 'Time (s)' \
-    if metric == 'scalability' \
-    else 'Loss'
+    # 2. Add text for labels, title and custom ticks
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(parameter)
+    ax.set_title(title)
+    ax.set_xticks(parameters)  # ????
+    ax.set_xticklabels(parameters)
+    ax.legend()
 
-title = dataset + ' - ' \
-    + metric.capitalize().replace('_', ' ')
+    fig.tight_layout()
 
-# 2. Add text for labels, title and custom ticks
-ax.set_ylabel(ylabel)
-ax.set_xlabel('# of records')
-ax.set_title(title)
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
+    # 3. Save stat figure to appropriate path
+    path_figure = Path(__file__).absolute().parent.parent / FIGURES_DIR
+    filename = 'Stat-' + dataset.replace('.csv', '-' + metric + '.png')
 
-autolabel(rects_naive, ax)
-autolabel(rects_kapra, ax)
-
-fig.tight_layout()
-
-# 3. Save stat figure to appropriate path
-path_figure = Path(__file__).absolute().parent.parent / FIGURES_DIR
-filename = 'Stat-' + dataset.replace('.csv', '-' + metric + '.png')
-
-plt.savefig(path_figure / filename)
+    plt.savefig(path_figure / filename)
