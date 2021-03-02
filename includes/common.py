@@ -343,11 +343,11 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                                         metric = instant_value_loss(group_large_g_vals + [ row ])
 
                                     if metric < tmp_metric: # Update min metric
-                                        best_rercord = { ridx : row }
+                                        best_record = { ridx : row }
                                         tmp_metric = metric
                                         best_row = row
             
-                            group_merged_large_g.update(best_rercord)
+                            group_merged_large_g.update(best_record)
                             group_large_g_vals.append(best_row)
 
                         # Check if the current candidate large group
