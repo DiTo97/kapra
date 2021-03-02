@@ -131,5 +131,4 @@ dmypy.json
 # VS Code
 .vscode/
 
-# Experiments...
-results/
+
