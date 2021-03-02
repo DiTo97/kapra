@@ -4,9 +4,6 @@ import random
 
 from loguru import logger
 
-# dictionary of the form id:num_round
-__perturbated__ = {}
-
 def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, l: int, epsilon: int = 3):
     """enforces the l-diversity on the records whose keys are inside A_s_dict
 
@@ -27,8 +24,7 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
     epsilon: int
         how much to potentially perturbate data (data will be perturbed of a value in range [-epsilon, epsilon])
     """
-    global __perturbated__
-    __perturbated__ = {}
+    perturbated_dict = {}
     PS_R = None
     keyset = set()
 
@@ -107,8 +103,8 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                             PS_s_values.add(A_s_dict[key_ec])
                             logger.error('Perturbated record ' + str(key_ec)
                                     + ' only at round #' + str(rnd))
-                            __perturbated__[key_ec] = rnd
+                            perturbated_dict[key_ec] = rnd
                             break
                         else:
                             rnd += 1
-    print(f"{len(__perturbated__)} records have been perturbated")
+    return perturbated

@@ -4,6 +4,7 @@ Supporting Pattern-preserving Anonymization for Time-series Data, 5.2
 """
 
 from loguru import logger
+import numpy as np 
 
 # Custom imports #
 from .k_anonymity import k_anonymity_top_down
@@ -41,6 +42,10 @@ def Naive(k_value, P_value, paa_value, l_value, data_path):
     PR = dict() # All pattern representations
                 # from QI records
 
+    # must not there be empty k-groups
+    length_all_k = [len(x) for x in QI_k_anonymized] 
+    assert np.all(np.array(length_all_k) > 0)
+
     for idx, k_group in enumerate(QI_k_anonymized):
         logger.info('Create-tree phase k-group #' + str(idx) + '...')
         create_tree('naive', k_group, PR, P_value, paa_value)
@@ -51,10 +56,11 @@ def Naive(k_value, P_value, paa_value, l_value, data_path):
     # 3. Enforce l-diversity
     logger.info('Enforcing l-diversity...')
 
-    enforce_l_diversity(PR, A_s_dict, QI_k_anonymized, l_value)
+    perturbated = enforce_l_diversity(PR, A_s_dict, QI_k_anonymized, l_value)
 
     logger.info('Enforced l-diversity')
 
     outpath = save_anonymized_dataset(data_path, "naive", PR, QI_k_anonymized, A_s_dict, col_names=col_names)
 
     logger.info('Saved anonymized dataset at: ' + str(outpath))
+    return perturbated
