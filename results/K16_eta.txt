@@ -1,2 +1,17 @@
 eta P 16
-
+naive 7.744 3 sales_transactions
+naive 8.333 6 sales_transactions
+naive 7.841 9 sales_transactions
+naive 7.165 12 sales_transactions
+kapra 7.371 3 sales_transactions
+kapra 4.23 6 sales_transactions
+kapra 4.32 9 sales_transactions
+kapra 4.643 12 sales_transactions
+naive 1745.842 3 facebook_palestine
+naive 1740.077 6 facebook_palestine
+kapra 798.332 3 facebook_palestine
+kapra 589.11 6 facebook_palestine
+naive 7178.303 3 facebook_microsoft
+naive 9815.756 6 facebook_microsoft
+kapra 3113.562 3 facebook_microsoft
+kapra 1112.112 6 facebook_microsoft

@@ -51,7 +51,7 @@ def autolabel(rects, ax):
                     ha='center', va='bottom')
 
 if __name__=="__main__":
-    statfile_path = 'C:/Users/gvlos/Documents/GitHub/kapra/results/P6_tot_pattern_loss.txt'
+    statfile_path = 'C:/Users/gvlos/Documents/GitHub/kapra/results/P6_tot_value_loss.txt'
 
     with open(Path(statfile_path), 'r') as f:
         # a. Parse the statfile header
@@ -123,4 +123,4 @@ if __name__=="__main__":
     path_figure = Path(__file__).absolute().parent.parent / FIGURES_DIR
     filename = f"Stat-{parameter}-{metric.capitalize().replace('_', '-')}"
 
-    plt.savefig(path_figure / filename)
+    plt.savefig(path_figure / filename, dpi=200)
