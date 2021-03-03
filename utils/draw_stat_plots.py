@@ -59,8 +59,9 @@ if __name__=="__main__":
 
         metric = header[0]
         parameter = header[1]
-        # uncomment if k in file
-        # k = header[2]
+        
+        other_param_fixed = header[2]
+        other_param_name = "P" if parameter=="K" else "K"
 
         # b. Parse the statfile rows
         lines = f.readlines()
@@ -69,7 +70,7 @@ if __name__=="__main__":
     parameters = []
 
     datasets = {"facebook_microsoft" : [], "sales_transactions": [], "facebook_palestine": []}
-    k = None
+    # k = None
     # check if data correct
     for i,l in enumerate(lines):
         if l[0] != "naive" and l[0] != "kapra":
@@ -108,8 +109,8 @@ if __name__=="__main__":
     ylabel = 'Time (s)' \
         if metric == 'scalability' \
         else 'Loss'
-
-    title = f"effects of tuning {parameter} on {metric.capitalize().replace('_', ' ')}, k={k if k else 0}"
+        
+    title = f"effects of tuning {parameter} on {metric.capitalize().replace('_', ' ')}, {other_param_name}={other_param_fixed if other_param_fixed else 0}"
     # 2. Add text for labels, title and custom ticks
     ax.set_ylabel(ylabel)
     ax.set_xlabel(parameter)
