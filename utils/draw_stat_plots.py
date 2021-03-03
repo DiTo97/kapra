@@ -51,7 +51,7 @@ def autolabel(rects, ax):
                     ha='center', va='bottom')
 
 if __name__=="__main__":
-    statfile_path = 'C:/Users/gvlos/Documents/GitHub/kapra/results/P6_tot_value_loss.txt'
+    statfile_path = 'C:/Users/gvlos/Documents/GitHub/kapra/results/K16_tot_pattern_loss.txt'
 
     with open(Path(statfile_path), 'r') as f:
         # a. Parse the statfile header
@@ -106,16 +106,25 @@ if __name__=="__main__":
         colors.pop(-1)
 
     # 1. Generate appropriate labels
-    ylabel = metric
+    if metric == 'tot_value_loss':
+        ylabel = 'Total Value loss'
+    elif metric == 'avg_value_loss':
+        ylabel = 'Average value loss'
+    elif metric == 'tot_pattern_loss':
+        ylabel = 'Total Pattern loss'
+    elif metric == 'avg_pattern_loss':
+        ylabel = 'Average Pattern loss'
+    elif metric == 'eta':
+        ylabel = 'Execution time (s)'
         
-    title = f"effects of tuning {parameter} on {metric.capitalize().replace('_', ' ')}, {other_param_name}={other_param_fixed if other_param_fixed else 0}"
+    title = f"Tuning {parameter} on {ylabel}, ({other_param_name}={other_param_fixed})"
     # 2. Add text for labels, title and custom ticks
     ax.set_ylabel(ylabel)
     ax.set_xlabel(parameter)
     ax.set_title(title)
     ax.set_xticks(parameters)  # ????
     ax.set_xticklabels(parameters)
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='best', fontsize='xx-small')
+    ax.legend(loc='best', fontsize=7)
 
     fig.tight_layout()
 

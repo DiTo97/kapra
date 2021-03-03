@@ -1,4 +1,4 @@
-tot_value_loss_avg K 6
+tot_value_loss K 6
 naive 9454.969 16 sales_transactions
 naive 12305.02 32 sales_transactions
 naive 16254.735 64 sales_transactions
