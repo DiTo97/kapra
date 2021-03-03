@@ -1,15 +1,17 @@
 """
-Draw barchart plots to compare naive and KAPRA (k, P)-anonymity implementations against some metrics on progressively larger data slices.
+Draw linechart plots to compare naive and KAPRA (k, P)-anonymity implementations tuning against some metrics on progressively larger datasets.
 
 An input statfile is expected to conform to this header-format:
-<dataset> <metric>
+<metric> <fixed_param> <fixed_param_value>
 
-where <metric> can either be one of: scalability, value_loss, or pattern_loss.
+where <metric> can either be one of: eta, avg_pattern_loss, tot_pattern_loss, avg_value_loss, or tot_value_loss;
+where <fixed_param> can either be k or P, and represents the parameter to vary the other one against in (k, P)-anonymity tuning.
 
 An input statfile is expected to conform to this row-format:
-<implementation> <#_of_records> <value>
+<algorithm> <value> <tuned_param_value> <dataset>
 
-where <value> should adhere to the specified <metric>.
+where <value> should adhere to the specified <metric>;
+where <tuned_param_value> can either be P or k, and represents the parameter that's currently being tuned.
 """
 
 import matplotlib
