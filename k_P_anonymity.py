@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # 4. Compute pattern loss (PL)
     logger.info('Computing pattern loss...')
 
-    global_ploss, global_ploss_avg = global_pattern_loss(data_path)
+    global_ploss, global_ploss_avg = global_pattern_loss(data_path, algorithm)
 
     tot_pattern_loss = round(float(global_ploss), 3)
     avg_pattern_loss = round(float(global_ploss_avg), 3)
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # 5. Compute instant value loss (VL)
     logger.info('Computing instant value loss...')
 
-    anonym_path = generate_output_path(data_path)
+    anonym_path = generate_output_path(data_path, algorithm)
     glob_vl, mean_vl = global_anon_value_loss(anonym_path)
 
     tot_value_loss = round(float(glob_vl), 3)

@@ -461,7 +461,7 @@ def pattern_loss(series, pr, paa_size, znorm_threshold=0.01):
     return pl, p, p_star
 
 
-def global_pattern_loss(data_path):
+def global_pattern_loss(data_path, algorithm):
     """
     Compute global pattern loss on a given dataset and its anonymized version
 
@@ -484,7 +484,7 @@ def global_pattern_loss(data_path):
     _, _, QI_ts, _, _ = load_dataset(data_path)
     
     # Infer path of the anonymized dataset
-    anonym_path = generate_output_path(data_path)
+    anonym_path = generate_output_path(data_path, algorithm)
     if not anonym_path.is_file():
         logger.error(str(anonym_path.absolute())
                 + ' not found')
