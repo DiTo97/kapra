@@ -11,7 +11,7 @@ An input statfile is expected to conform to this row-format:
 <algorithm> <value> <tuned_param_value> <dataset>
 
 where <value> should adhere to the specified <metric>;
-where <tuned_param_value> can either be P or k, and represents the parameter that's currently being tuned.
+where <tuned_param_value> should adhere to either P or k, that is, the parameter that's actively being tuned.
 """
 
 import matplotlib
