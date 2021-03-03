@@ -10,14 +10,6 @@ An input statfile is expected to conform to this row-format:
 <implementation> <#_of_records> <value>
 
 where <value> should adhere to the specified <metric>.
-
-An example statfile could appear like this:
-facebook_economy.csv scalability
-naive 100 56.5
-kapra 100 50.5
-naive 500 300
-kapra 500 297.5
-...
 """
 
 import matplotlib
