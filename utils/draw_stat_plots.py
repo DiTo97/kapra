@@ -57,49 +57,59 @@ if __name__=="__main__":
         # a. Parse the statfile header
         header = f.readline().split()
 
-        dataset = header[0]
-        metric = header[1]
-        parameter = header[2]
+        metric = header[0]
+        parameter = header[1]
+        # uncomment if k in file
+        # k = header[2]
 
         # b. Parse the statfile rows
         lines = f.readlines()
         lines = list(map(lambda x: x.split(), lines))
 
-    parameters = [] # Datasets size (# of records)
-    parameters_naive = []
-    parameters_kapra = []
-    naive_vals = []
-    kapra_vals = []
+    parameters = []
 
-    for l in lines:
-        if l[0] == 'naive':
-            naive_vals.append(float(l[1]))
-            parameters_naive.append(int(l[2]))
-        elif l[0] == 'kapra':
-            kapra_vals.append(float(l[1]))
-            parameters_kapra.append(int(l[2]))
-        else:
-            logger.error('Cannot interpret ' + l[0]
-                    + ' as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')
+    datasets = {"facebook_microsoft" : [], "sales_transactions": [], "facebook_palestine": []}
+    k = None
+    # check if data correct
+    for i,l in enumerate(lines):
+        if l[0] != "naive" and l[0] != "kapra":
+            logger.error(f'Cannot interpret {l[0]} as a (k, P)-anonymity algorithm: only naive and KAPRA are supported')
             exit(1)
+        if not l[1].isnumeric() or not l[2].isnumeric():
+            logger.error("metric and parameter values should be numeric only")
+            exit(1)
+
         if int(l[2]) not in parameters: parameters.append(int(l[2]))
+
+        # keep track of which entries relate to which dataset
+        if l[3] in datasets: datasets[l[3]].append(i) 
+        else: 
+            logger.error(f"unsupported dataset: {l[3]}")
+            exit(1)
 
     fig, ax = plt.subplots()
 
-    ax.plot(parameters_naive, naive_vals, label="Naive", c="blue")
-    ax.scatter(parameters_naive, naive_vals, c="blue", marker="x")
+    colors = ["blue", "green", "purple", "cyan", "orange", "pink"]
+    for ds in datasets:
+        param_naive_vals = [int(lines[i][2]) for i in datasets[ds] if lines[i][0] == "naive"]
+        param_kapra_vals = [int(lines[i][2]) for i in datasets[ds] if lines[i][0] == "kapra"]
+        naive_res_vals = [int(lines[i][1]) for i in datasets[ds] if lines[i][0] == "naive"]
+        kapra_res_vals = [int(lines[i][1]) for i in datasets[ds] if lines[i][0] == "kapra"]
 
-    ax.plot(parameters_kapra, kapra_vals, label="KAPRA", c="orange")
-    ax.scatter(parameters_kapra, kapra_vals, c="orange", marker="d")
+        ax.plot(param_naive_vals, naive_res_vals, label=f"{ds}.Naive", c=colors[-1])
+        ax.scatter(param_naive_vals, naive_res_vals, c=colors[-1], marker="x")
+        colors.pop(-1)
+
+        ax.plot(param_kapra_vals, kapra_res_vals, label=f"{ds}.KAPRA", c=colors[-1])
+        ax.scatter(param_kapra_vals, kapra_res_vals, c=colors[-1], marker="d")
+        colors.pop(-1)
 
     # 1. Generate appropriate labels
     ylabel = 'Time (s)' \
         if metric == 'scalability' \
         else 'Loss'
 
-    title = dataset + ' - ' \
-        + metric.capitalize().replace('_', ' ')
-
+    title = f"effects of tuning {parameter} on {metric.capitalize().replace('_', ' ')}, k={k if k else 0}"
     # 2. Add text for labels, title and custom ticks
     ax.set_ylabel(ylabel)
     ax.set_xlabel(parameter)
@@ -112,6 +122,6 @@ if __name__=="__main__":
 
     # 3. Save stat figure to appropriate path
     path_figure = Path(__file__).absolute().parent.parent / FIGURES_DIR
-    filename = 'Stat-' + dataset.replace('.csv', '-' + metric + '.png')
+    filename = f"Stat-{parameter}-{metric.capitalize().replace('_', '-')}"
 
     plt.savefig(path_figure / filename)
