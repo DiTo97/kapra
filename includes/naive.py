@@ -42,10 +42,6 @@ def Naive(k_value, P_value, paa_value, l_value, data_path):
     PR = dict() # All pattern representations
                 # from QI records
 
-    # must not there be empty k-groups
-    length_all_k = [len(x) for x in QI_k_anonymized] 
-    assert np.all(np.array(length_all_k) > 0)
-
     for idx, k_group in enumerate(QI_k_anonymized):
         logger.info('Create-tree phase k-group #' + str(idx) + '...')
         create_tree('naive', k_group, PR, P_value, paa_value)

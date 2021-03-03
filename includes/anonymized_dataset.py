@@ -21,7 +21,6 @@ class AnonymizedDataset:
         logger.info("Start creation dataset anonymized")
         logger.info("Added {} anonymized group".format(len(self.anonymized_data)))
         for index in range(0, len(self.anonymized_data)): 
-            #logger.info("Start creation Group {}".format(index))
 
             k_group = self.anonymized_data[index]
                         
@@ -40,7 +39,6 @@ class AnonymizedDataset:
                 value_row.append("Group: {}".format(index))
 
                 self.final_data_anonymized[key] = value_row
-            #logger.info("Finish creation Group {}".format(index))
         
         logger.info("Added {} suppressed group".format(len(self.suppressed_data)))
         for index in range(0, len(self.suppressed_data)):
@@ -48,7 +46,6 @@ class AnonymizedDataset:
             for key in group.keys():
                 value_row = [" - "]*len(group[key])
                 value_row.append(" - ") # pattern rapresentation
-                # TODO: Insert senstive attribute
                 value_row.append(" - ") # group
                 self.final_data_anonymized[key] = value_row
 
