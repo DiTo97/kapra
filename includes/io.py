@@ -44,7 +44,7 @@ def get_min_max_QI_values_from_table(df, QI_cols):
 
     return QI_min_values, QI_max_values
 
-def generate_output_path(data_path):
+def generate_output_path(data_path, algorithm):
     """
     Generate output path for anonymized dataset
 
@@ -63,7 +63,7 @@ def generate_output_path(data_path):
     abs_data_path = Path(data_path).absolute()
 
     # Compute output file path with '_anon' suffix
-    outfilename = abs_data_path.parts[-1].replace('.csv', '_anon.csv')
+    outfilename = abs_data_path.parts[-1].replace('.csv', '_' + algorithm + '_anon.csv')
 
     # Handle datasets coming from downsampled dir
     if abs_data_path.parent.parts[-1] == DOWNSAMPLED_DIR:
@@ -177,7 +177,7 @@ def save_anonymized_dataset(data_path, algorithm,
         List of P-groups of records to suppress (KAPRA-only)
     """
 
-    outpath = generate_output_path(data_path)
+    outpath = generate_output_path(data_path, algorithm)
 
     anonymized_dataset = AnonymizedDataset(anonymized,
             prs, suppressed, sensitive)

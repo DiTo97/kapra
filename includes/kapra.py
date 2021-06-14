@@ -66,6 +66,7 @@ def KAPRA(K_value, P_value, paa_value, l_value, data_path):
 
     enforce_l_diversity(PR, A_s_dict, K_groups, l_value)
 
-    outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict, col_names=col_names)
+    outpath = save_anonymized_dataset(data_path, "kapra", PR , K_groups, A_s_dict, 
+        suppressed=suppressed_groups, col_names=col_names)
 
     logger.info('Saved anonymized dataset at: ' + str(outpath))

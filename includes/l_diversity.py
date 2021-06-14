@@ -72,14 +72,11 @@ def enforce_l_diversity(pattern_dict: dict, A_s_dict: dict, k_group_list: list, 
                 if perturbated:
                     PS_s_values.add(A_s_dict[key_ec])
                 else:
-                    """
-                    No valid perturbative noise was found, where valid means that it did not previosuly exist inside the P-group.
-                    In order not to falsify the frequency of the existing sensitive attributes inside the P-group, we discard the
-                    random procedure, and operate with an iterative +/- 1 increment of the perturbative noise.
-
-                    By doing so we favour the satisfaction of the l-diversity constraint at the expenses of larger information loss;
-                    hence we improved the privacy capability, but degraded the utility in return.
-                    """
+                    # No valid perturbative noise was found, where valid means that it did not previosuly exist inside the P-group.
+                    # In order not to falsify the frequency of the existing sensitive attributes inside the P-group, we discard the
+                    # random procedure, and operate with an iterative +/- 1 increment of the perturbative noise.
+                    # By doing so we favour the satisfaction of the l-diversity constraint at the expenses of larger information loss;
+                    # hence we improved the privacy capability, but degraded the utility in return.
                     rnd = 1
                     increment = 1
                     while True:

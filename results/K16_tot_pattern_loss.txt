@@ -1,0 +1,17 @@
+tot_pattern_loss P 16
+naive 688.827 3 sales_transactions
+naive 728.733 6 sales_transactions
+naive 738.009 9 sales_transactions 
+naive 749.285 12 sales_transactions
+kapra 588.666 3 sales_transactions
+kapra 592.104 6 sales_transactions
+kapra 611.639 9 sales_transactions
+kapra 616.779 12 sales_transactions
+naive 5159.906 3 facebook_palestine
+naive 4996.752 6 facebook_palestine
+kapra 5241.208 3 facebook_palestine
+kapra 5186.419 6 facebook_palestine
+naive 11389.932 3 facebook_microsoft
+naive 12087.171 6 facebook_microsoft
+kapra 11577.523 3 facebook_microsoft
+kapra 11447.182 6 facebook_microsoft

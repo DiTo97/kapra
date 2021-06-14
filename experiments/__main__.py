@@ -5,11 +5,6 @@ from concurrent.futures import ProcessPoolExecutor # Parallelize comparisons
 from pathlib import Path
 
 k_P_pairs = [
-    (16, 6),
-    (16, 3)
-]
-
-k_P_pairs = [
     (16, 9),
     (64, 6),
     (128, 6),

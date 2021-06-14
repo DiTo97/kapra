@@ -1,0 +1,17 @@
+avg_value_loss  P 16
+naive 11.547 3 sales_transactions
+naive 11.658 6 sales_transactions
+naive 12.114 9 sales_transactions
+naive 11.486 12 sales_transactions
+kapra 16.68 3 sales_transactions
+kapra 16.315 6 sales_transactions
+kapra 17.226 9 sales_transactions
+kapra 17.961 12 sales_transactions
+naive 61.821 3 facebook_palestine
+naive 62.665 6 facebook_palestine
+kapra 99.356 3 facebook_palestine
+kapra 146.874 6 facebook_palestine
+naive 64.466 3 facebook_microsoft
+naive 54.908 6 facebook_microsoft
+kapra 68.746 3 facebook_microsoft
+kapra 90.328 6 facebook_microsoft

@@ -24,9 +24,18 @@ def find_tuple_with_max_ncp(base, T, key, T_max_vals, T_min_vals):
     :param base: list of int
         Tuple to compare T's tuples against
 
+    :param key: T
+        the table
+
     :param key: int
         Unique Id of `base`
 
+    :param T_max_vals
+        the maximums
+    
+    :param T_min_vals
+        the minimums
+        
     Returns
     -------
     :return best: int
@@ -199,12 +208,6 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
         del T[i]
 
     # 2. Iterate recursively, or store groups if base case
-    """ print("\n\nsize: ", size)
-    print("length of group_u: ", len(group_u))
-    print("length of group_v: ", len(group_v))
-    print("current label: ", label)
-    print("current t_structure: ", T_structure) """
-    assert len(group_u) > 0 and len(group_v) > 0
     if len(group_u) >= size:
         top_down_greedy_clustering(algorithm, group_u, size, T_clustered, \
                 T_structure, label + 'a', T_max_vals, T_min_vals) # Extend label with 'a'
@@ -218,9 +221,6 @@ def top_down_greedy_clustering(algorithm, T, size, T_clustered,
     else:
         T_clustered.append(group_v)
         T_structure.append(label + 'b')
-
-    """ print("t_structure, end of call : ", T_structure)
-    print("\n\n") """
 
 
 def postprocessing(algorithm, size, T_clustered, T_structure,
@@ -343,11 +343,11 @@ def postprocessing(algorithm, size, T_clustered, T_structure,
                                         metric = instant_value_loss(group_large_g_vals + [ row ])
 
                                     if metric < tmp_metric: # Update min metric
-                                        best_rercord = { ridx : row }
+                                        best_record = { ridx : row }
                                         tmp_metric = metric
                                         best_row = row
             
-                            group_merged_large_g.update(best_rercord)
+                            group_merged_large_g.update(best_record)
                             group_large_g_vals.append(best_row)
 
                         # Check if the current candidate large group
